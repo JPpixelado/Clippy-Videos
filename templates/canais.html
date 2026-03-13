@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Canais | ClipEngine</title>
+<style>
+ body {
+  font-family: 'Roboto', Arial, sans-serif;
+  margin: 0;
+  background: #f5f5f5;
+  color: #202124;
+}
+
+header {
+  background: #202124;
+  color: white;
+  padding: 20px 30px;
+  font-size: 22px;
+  font-weight: 500;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.container {
+  padding: 30px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 24px;
+}
+
+.canal-card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.canal-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.canal-card h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #202124;
+}
+
+.canal-card p {
+  color: #5f6368;
+  font-size: 14px;
+  margin: 6px 0;
+}
+
+.canal-card a {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 10px 16px;
+  background: #4285f4;
+  color: white;
+  text-decoration: none;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: background 0.2s ease;
+}
+
+.canal-card a:hover {
+  background: #3367d6;
+}
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 220px;
+  height: 100vh;
+  background-color: #202124;
+  color: white;
+  padding: 20px;
+  z-index: 999;
+  display: none;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.3);
+}
+
+.sidebar h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  margin-bottom: 30px;
+}
+
+.sidebar h2 img {
+  width: 24px;
+  height: 24px;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  color: white;
+  text-decoration: none;
+  font-size: 16px;
+  transition: background 0.2s ease;
+}
+
+.menu-item img {
+  width: 24px;
+  height: 24px;
+}
+
+.menu-item:hover {
+  background-color: #303134;
+  border-radius: 6px;
+  padding-left: 10px;
+}
+</style>
+</head>
+<body>
+<header>  <!-- Botão hambúrguer -->
+<button id="menuToggle" style="
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  background: #202020;
+  border: none;
+  padding: 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  z-index: 1000;
+">
+  <img src="{{ url_for('static', filename='menu.png') }}" alt="Menu" style="width:24px; height:24px;">
+</button>
+
+<div class="sidebar" style="display:none; position:fixed; top:0; left:0; width:220px; height:100vh; background:#202020; color:white; padding:20px; z-index:999;">
+  <h2><img src="{{ url_for('static', filename='favicon.png') }}">Play Videos</h2>
+  <a href="/" class="menu-item"><img src="{{ url_for('static', filename='home.png') }}"> início</a>
+  <a href="/buscar" class="menu-item"><img src="{{ url_for('static', filename='search.png') }}"> pesquisar</a>
+  <a href="/canais"><img src="{{ url_for('static', filename='channels.png') }}"> canais</a>
+  <a href="/create"><img src="{{ url_for('static', filename='studio.png') }}"> Play Studio</a>
+  <a href="/login"><img src="{{ url_for('static', filename='user.png') }}"> login</a>
+  <a href="/criar-playlist"><img src="{{ url_for('static', filename='playlist.png') }}"> criar playlist</a>
+</div>Canais do ClipEngine</header>
+<div class="container">
+    <div class="grid">
+        {% for canal in canais %}
+        <div class="canal-card">
+            <h2>{{ canal.display_name }}</h2>
+            <p>@{{ canal.username }}</p>
+            <p>{{ canal.bio }}</p>
+            <a href="{{ url_for('canal', username=canal.username) }}">Ver canal</a>
+        </div>
+        {% else %}
+        <p>Nenhum canal encontrado.</p>
+        {% endfor %}
+    </div>
+</div>
+<script>
+document.getElementById('menuToggle').addEventListener('click', function() {
+  const sidebar = document.querySelector('.sidebar');
+  sidebar.style.display = (sidebar.style.display === 'none' || sidebar.style.display === '') ? 'block' : 'none';
+});
+</script>
+</body>
+</html>

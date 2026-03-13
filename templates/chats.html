@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Meus Chats</title>
+    <style>
+		body {
+		background-color: {{ user_settings.cor_fundo }} !important;
+		}
+        .chat-card { border: 1px solid #ddd; padding: 15px; margin: 10px; border-radius: 8px; background: white; }
+        .chat-link { text-decoration: none; color: #333; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Suas Conversas Seguras</h1>
+    {% for chat in chats %}
+        <div class="chat-card">
+            {% set outro_usuario = chat.user2 if chat.user1 == username else chat.user1 %}
+            <a class="chat-link" href="/chat/{{ chat.chat_id }}">
+                💬 Conversa com @{{ outro_usuario }}
+            </a>
+        </div>
+    {% endfor %}
+</body>
+</html>

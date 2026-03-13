@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>🔴 {{ live.title }} | Clippy Videos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root { color-scheme: dark; }
+    html, body { height: 100%; margin: 0; background: #000; }
+
+    .pv-stage {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    .pv-video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+    }
+
+    .pv-ui {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px 16px;
+      background: linear-gradient(to top, rgba(0,0,0,.6), rgba(0,0,0,0));
+      color: #fff;
+      font-family: system-ui, sans-serif;
+      z-index: 10;
+    }
+
+    .pv-scrub {
+      height: 6px;
+      background: #333;
+      border-radius: 999px;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .pv-scrub > .fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 0%;
+      background: #e91e63;
+      border-radius: 999px;
+    }
+
+    .pv-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-top: 8px;
+    }
+
+    .btn {
+      background-color: rgba(255, 255, 255, 0.08);
+      border: none;
+      padding: 10px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+    }
+
+    .btn:hover { background-color: rgba(255, 255, 255, 0.2); }
+    .btn img { width: 24px; height: 24px; object-fit: contain; }
+
+    .pv-title {
+      position: absolute;
+      top: 8px;
+      left: 12px;
+      font-size: 18px;
+      font-weight: bold;
+      background: rgba(0,0,0,0.5);
+      padding: 6px 12px;
+      border-radius: 8px;
+      color: #fff;
+      opacity: .85;
+      z-index: 10;
+    }
+
+    .stats {
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      font-size: 14px;
+      background: rgba(0,0,0,0.5);
+      padding: 6px 12px;
+      border-radius: 8px;
+      color: #fff;
+      opacity: .85;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+  <div class="pv-stage" id="pv">
+    <video class="pv-video" id="vid" autoplay playsinline></video>
+
+    <div class="pv-title">🔴 {{ live.title }}</div>
+    <div class="stats">👥 <span id="viewers">0</span> espectadores</div>
+
+    <div class="pv-ui">
+      <div class="pv-controls">
+        <div style="display:flex; gap:8px;">
+          <button class="btn" id="btnTogglePlay"><img id="playIcon" src="{{ url_for('static', filename='icons/play.png') }}"></button>
+          <button class="btn" id="btnToggleMute"><img id="volumeIcon" src="{{ url_for('static', filename='icons/unmute.png') }}"></button>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn" id="btnFullscreen"><img src="{{ url_for('static', filename='icons/fullscreen.png') }}"></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script>
+    const vid = document.getElementById('vid');
+    const playIcon = document.getElementById('playIcon');
+    const volumeIcon = document.getElementById('volumeIcon');
+    const btnTogglePlay = document.getElementById('btnTogglePlay');
+    const btnToggleMute = document.getElementById('btnToggleMute');
+    const btnFullscreen = document.getElementById('btnFullscreen');
+    const viewersEl = document.getElementById('viewers');
+    const liveId = "{{ live.id }}";
+
+    let pc;
+    const socket = io({ transports: ['websocket'] });
+
+    async function startWatch() {
+      pc = new RTCPeerConnection();
+      pc.ontrack = (e) => { vid.srcObject = e.streams[0]; };
+
+      socket.emit('join', { liveId, role: 'viewer' });
+
+      pc.onicecandidate = (e) => {
+        if (e.candidate) socket.emit('candidate', { liveId, candidate: e.candidate });
+      };
+
+      const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+      await pc.setLocalDescription(offer);
+      socket.emit('offer', { liveId, sdp: offer.sdp, role: 'viewer' });
+
+      socket.on('answer', async (payload) => {
+        if (payload.liveId === liveId) {
+          await pc.setRemoteDescription({ type:'answer', sdp: payload.sdp });
+        }
+      });
+
+      socket.on('candidate', async (payload) => {
+        if (payload.liveId === liveId) {
+          try { await pc.addIceCandidate(payload.candidate); } catch {}
+        }
+      });
+
+      // Atualiza contador de espectadores
+      socket.on('system', (msg) => {
+        if (msg.role === 'viewer') {
+          viewersEl.textContent = parseInt(viewersEl.textContent) + 1;
+        }
+      });
+    }
+    startWatch();
+
+    // Controles
+    btnTogglePlay.onclick = () => {
+      if (vid.paused) {
+        vid.play();
+        playIcon.src = "{{ url_for('static', filename='icons/pause.png') }}";
+      } else {
+        vid.pause();
+        playIcon.src = "{{ url_for('static', filename='icons/play.png') }}";
+      }
+    };
+
+    btnToggleMute.onclick = () => {
+      vid.muted = !vid.muted;
+      volumeIcon.src = vid.muted
+        ? "{{ url_for('static', filename='icons/mute.png') }}"
+        : "{{ url_for('static', filename='icons/unmute.png') }}";
+    };
+
+    btnFullscreen.onclick = () => {
+      const el = document.documentElement;
+      if (!document.fullscreenElement) {
+        el.requestFullscreen().catch(err => console.warn('Erro ao entrar em fullscreen:', err));
+      } else {
+        document.exitFullscreen();
+      }
+    };
+  </script>
+</body>
+</html>

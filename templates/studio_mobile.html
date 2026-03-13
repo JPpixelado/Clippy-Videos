@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Studio Mobile | Clippy</title>
+  <style>
+    :root {
+      --primary: #ff2d8d;
+      --bg: #0f0f0f;
+      --surface: #1f1f1f;
+      --text: #ffffff;
+      --border: rgba(255, 255, 255, 0.1);
+    }
+
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font-family: -apple-system, system-ui, sans-serif;
+      padding: 20px;
+    }
+
+    .studio-header {
+      display: flex; align-items: center; gap: 15px; margin-bottom: 25px;
+    }
+    .back-btn { background: none; border: none; color: white; font-size: 24px; padding: 0; }
+
+    h2 { margin: 0; font-size: 20px; font-weight: 800; }
+
+    /* --- ÁREA DE UPLOAD --- */
+    .upload-card {
+      background: var(--surface); border-radius: 16px; padding: 20px;
+      border: 2px dashed var(--border); text-align: center; margin-bottom: 20px;
+      transition: border-color 0.3s;
+    }
+    .upload-card.active { border-color: var(--primary); background: rgba(255, 45, 141, 0.05); }
+
+    .upload-icon { font-size: 40px; margin-bottom: 10px; display: block; }
+    
+    .file-input-label {
+      display: inline-block; background: var(--primary); color: white;
+      padding: 10px 24px; border-radius: 25px; font-weight: bold;
+      font-size: 14px; margin-top: 10px; cursor: pointer;
+    }
+
+    #file-name-display {
+      margin-top: 10px; font-size: 12px; color: var(--primary); font-weight: 500;
+    }
+
+    /* --- FORMULÁRIO --- */
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; font-size: 12px; color: #aaa; margin-bottom: 5px; margin-left: 5px; }
+    
+    input[type="text"], textarea {
+      width: 100%; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 12px; color: white; font-size: 16px;
+      outline: none; box-sizing: border-box;
+    }
+    input:focus, textarea:focus { border-color: var(--primary); }
+
+    textarea { resize: none; height: 100px; }
+
+    .publish-btn {
+      width: 100%; background: white; color: black; border: none;
+      padding: 15px; border-radius: 30px; font-size: 16px; font-weight: bold;
+      margin-top: 10px; transition: transform 0.1s;
+    }
+    .publish-btn:active { transform: scale(0.98); background: #eee; }
+
+    .info-box {
+      background: rgba(255,255,255,0.05); padding: 12px; border-radius: 10px;
+      font-size: 12px; color: #888; margin-top: 20px; line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="studio-header">
+    <button class="back-btn" onclick="history.back()">✕</button>
+    <h2>Criar</h2>
+  </div>
+
+  <form method="POST" enctype="multipart/form-data" id="uploadForm">
+    
+    <div class="upload-card" id="dropZone">
+      <span class="upload-icon">🎬</span>
+      <p style="margin: 0; font-weight: 600;">Selecionar vídeo</p>
+      <p style="font-size: 12px; color: #888; margin: 5px 0;">MP4 ou MOV recomendado</p>
+      
+      <label class="file-input-label">
+        ESCOLHER ARQUIVO
+        <input type="file" name="video" accept="video/*" required style="display: none;" id="videoInput">
+      </label>
+      <div id="file-name-display"></div>
+    </div>
+
+    <div class="form-group">
+      <label>Título (obrigatório)</label>
+      <input type="text" name="title" placeholder="Dê um nome ao seu vídeo" required>
+    </div>
+
+    <div class="form-group">
+      <label>Descrição</label>
+      <textarea name="description" placeholder="Conte aos espectadores sobre o seu vídeo"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Miniatura (opcional)</label>
+      <input type="file" name="thumb" accept="image/*" style="font-size: 12px;">
+    </div>
+
+    <button type="submit" class="publish-btn">PUBLICAR</button>
+
+    <div class="info-box">
+      <b>Lembre-se:</b> Ao publicar, você confirma que seu conteúdo segue as diretrizes da comunidade. Vídeos verticais de até 60s serão postados como <b>Shorts</b> automaticamente.
+    </div>
+  </form>
+
+  <script>
+    const videoInput = document.getElementById('videoInput');
+    const fileNameDisplay = document.getElementById('file-name-display');
+    const dropZone = document.getElementById('dropZone');
+
+    // Mostra o nome do arquivo selecionado
+    videoInput.addEventListener('change', function() {
+      if (this.files && this.files.length > 0) {
+        fileNameDisplay.innerText = "✓ " + this.files[0].name;
+        dropZone.classList.add('active');
+      }
+    });
+
+    // Feedback visual simples ao arrastar (para mobile que suporta split screen)
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropZone.addEventListener(eventName, () => dropZone.classList.add('active'), false);
+    });
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, () => dropZone.classList.remove('active'), false);
+    });
+  </script>
+
+</body>
+</html>

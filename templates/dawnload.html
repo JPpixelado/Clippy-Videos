@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Download de Vídeo</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #f9f9f9;
+            padding: 40px;
+            text-align: center;
+        }
+        form {
+            margin-bottom: 30px;
+        }
+        input {
+            padding: 10px;
+            font-size: 16px;
+            width: 300px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #e50914;
+            color: white;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 6px;
+        }
+        video {
+            margin-top: 20px;
+            max-width: 600px;
+            border-radius: 8px;
+        }
+        .error {
+            color: red;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Download de vídeo</h2>
+    <form method="POST">
+        <input type="text" name="video_id" placeholder="Digite o ID do vídeo" required>
+        <button type="submit">Ver prévia</button>
+    </form>
+
+    {% if video_preview == 'not_found' %}
+        <div class="error">Vídeo não encontrado.</div>
+    {% elif video_preview %}
+        <video controls src="{{ video_preview }}"></video>
+        <br><br>
+        <a href="{{ video_preview }}" download>
+            <button>Baixar vídeo</button>
+        </a>
+    {% endif %}
+</body>
+</html>

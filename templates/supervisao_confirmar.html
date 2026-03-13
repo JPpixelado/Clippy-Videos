@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Supervisão Parental - Etapa {{ etapa }} - Clippy Videos</title>
+    <link rel="icon" href="{{ static_url }}favicon.ico" type="image/x-icon">
+    <style>
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #333;
+        min-height: 100vh;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+    }
+    .container {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+        padding: 40px;
+        max-width: 600px;
+        width: 100%;
+    }
+    h1 {
+        color: #4a00e0;
+        text-align: center;
+        margin-bottom: 10px;
+        font-size: 28px;
+    }
+    .progress {
+        display: flex;
+        justify-content: center;
+        margin: 25px 0 35px;
+        gap: 12px;
+    }
+    .step {
+        width: 38px;
+        height: 38px;
+        line-height: 38px;
+        border-radius: 50%;
+        background: #e0e0e0;
+        color: #666;
+        font-weight: bold;
+        transition: all 0.3s;
+    }
+    .step.active {
+        background: #4a00e0;
+        color: white;
+        transform: scale(1.15);
+        box-shadow: 0 0 15px rgba(74,0,224,0.4);
+    }
+    .alert, .info {
+        border-radius: 10px;
+        padding: 18px;
+        margin: 20px 0;
+        line-height: 1.6;
+    }
+    .alert-warning {
+        background: #fff3cd;
+        border-left: 6px solid #ff9800;
+        color: #856404;
+    }
+    .info {
+        background: #e3f2fd;
+        border-left: 6px solid #2196f3;
+        color: #0d47a1;
+    }
+    label {
+        font-weight: 600;
+        margin: 18px 0 8px;
+        display: block;
+        color: #444;
+    }
+    input, select {
+        width: 100%;
+        padding: 14px;
+        border: 2px solid #ddd;
+        border-radius: 10px;
+        font-size: 16px;
+        transition: border 0.3s;
+    }
+    input:focus, select:focus {
+        border-color: #4a00e0;
+        outline: none;
+        box-shadow: 0 0 8px rgba(74,0,224,0.2);
+    }
+    button {
+        padding: 14px 28px;
+        background: linear-gradient(90deg, #4a00e0, #8e2de2);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        margin: 15px 10px 0 0;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(74,0,224,0.3);
+    }
+    button.cancel {
+        background: #f44336;
+    }
+    .footer-link {
+        text-align: center;
+        margin-top: 30px;
+        font-size: 15px;
+    }
+</style>
+</head>
+<body>
+    <div class="container">
+        <h1>Configurar Supervisão Parental - Etapa {{ etapa }}/5</h1>
+        
+        <div class="progress">
+            {% for i in range(1,6) %}
+                <span class="step {% if i|int == etapa|int %}active{% endif %}">{{ i }}</span>
+            {% endfor %}
+        </div>
+        
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="alert alert-info">{{ messages[0] }}</div>
+            {% endif %}
+        {% endwith %}
+        
+        <form method="POST">
+            {% if etapa == '1' %}
+                <div class="alert alert-warning">
+                    Etapa 1: Verifique sua idade. Se errou, corrija agora ou envie uma foto do rosto para comprovação (opcional).
+                </div>
+                <label for="idade_corrigida">Corrigir idade (deixe vazio se correta):</label>
+                <input type="number" id="idade_corrigida" name="idade_corrigida" min="1" max="100" placeholder="{{ configs.idade }}">
+                
+                <label for="foto_rosto">Enviar foto do rosto (opcional):</label>
+                <input type="file" id="foto_rosto" name="foto_rosto" accept="image/*">
+                
+                <button type="submit">Seguir para Etapa 2</button>
+            
+            {% elif etapa == '2' %}
+                <div class="info">
+                    Etapa 2: Como funciona o modo supervisionado?<br>
+                    - Seu conteúdo será filtrado por idade.<br>
+                    - Responsável pode monitorar histórico e chats.<br>
+                    - Funções como playlists e comentários serão liberadas, mas com limites.<br>
+                    - Pode ser desativado pelo responsável a qualquer momento.
+                </div>
+                <button type="submit">Entendi, seguir para Etapa 3</button>
+            
+            {% elif etapa == '3' %}
+                <div class="alert alert-warning">
+                    Etapa 3: Informações do responsável (use as mesmas do login).
+                </div>
+                <label for="responsavel_username">Nome de usuário do responsável (sem @):</label>
+                <input type="text" id="responsavel_username" name="responsavel_username" required>
+                
+                <label for="senha_responsavel">Senha do responsável:</label>
+                <input type="password" id="senha_responsavel" name="senha_responsavel" required>
+                
+                <button type="submit">Seguir para Etapa 4</button>
+            
+            {% elif etapa == '4' %}
+                <div class="info">
+                    Etapa 4: Escolha a classificação máxima de conteúdo permitida (baseado no sistema brasileiro).
+                </div>
+                <label for="classificacao_maxima">Classificação máxima:</label>
+                <select id="classificacao_maxima" name="classificacao_maxima" required>
+					<option value="">Selecione...</option>
+                    <option value="L">L (Livre para todos)</option>
+                    <option value="10">10 (Não recomendado para menores de 10)</option>
+                    <option value="A10">A10 (Acompanhado para menores de 10)</option>
+                    <option value="12">12 (Não recomendado para menores de 12)</option>
+                    <option value="A12">A12 (Acompanhado para menores de 12)</option>
+                    <option value="14">14 (Não recomendado para menores de 14)</option>
+                    <option value="A14">A14 (Acompanhado para menores de 14)</option>
+                    <option value="16">16 (Não recomendado para menores de 16)</option>
+                    <option value="A16">A16 (Acompanhado para menores de 16)</option>
+                    <option value="18">18 (Não recomendado para menores de 18)</option>
+                    <option value="A18">A18 (Acompanhado para menores de 18)</option>
+                </select>
+                
+                <button type="submit">Seguir para Etapa 5</button>
+            
+            {% elif etapa == '5' %}
+                <div class="info">
+                    Etapa 5: Revise tudo:<br>
+                    - Idade: {{ configs.idade }}<br>
+                    - Responsável: {{ temp_data.responsavel_username }}<br>
+                    - Classificação máxima: {{ temp_data.classificacao_maxima }}<br>
+                    - Foto enviada: {% if temp_data.foto_salva %}Sim{% else %}Não{% endif %}
+                </div>
+                <button type="submit">Confirmar e Ativar Supervisão</button>
+            {% endif %}
+            
+            <button type="submit" name="acao" value="cancelar" class="cancel">Cancelar Processo</button>
+        </form>
+        
+        <p style="text-align: center; margin-top: 30px;">
+            <a href="{{ url_for('configs') }}">Voltar para configurações</a>
+        </p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Configurações</title>
+    <style>
+        body { background: {{ user_settings.cor_fundo }}; font-family: sans-serif; padding: 20px; }
+        .card { background: white; padding: 20px; border-radius: 10px; max-width: 400px; margin: auto; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Minhas Configurações</h2>
+		{% if user_settings.idade | int <= 11 %}
+<div class="alert alert-warning">
+    <strong>Modo infantil ativado!</strong><br>
+    Um responsável precisa confirmar as configurações para liberar funções como playlists, comentários e chats.
+    <br><a href="/supervisao-confirmar">Configurar como responsável →</a>
+</div>
+{% endif %}
+        <form method="POST">
+            <label>Cor de Fundo:</label><br>
+            <input type="color" name="cor_fundo" value="{{ user_settings.cor_fundo }}"><br><br>
+
+            <label>Sua Idade:</label><br>
+            <select name="idade">
+                <option value="2" {% if user_settings.idade == '2' %}selected{% endif %}>2 anos</option>
+                <option value="3" {% if user_settings.idade == '3' %}selected{% endif %}>3 anos</option>
+                <option value="4" {% if user_settings.idade == '4' %}selected{% endif %}>4 anos</option>
+				<option value="5" {% if user_settings.idade == '5' %}selected{% endif %}>5 anos</option>
+				<option value="6" {% if user_settings.idade == '6' %}selected{% endif %}>6 anos</option>
+				<option value="7" {% if user_settings.idade == '7' %}selected{% endif %}>7 anos</option>
+				<option value="8" {% if user_settings.idade == '8' %}selected{% endif %}>8 anos</option>
+				<option value="9" {% if user_settings.idade == '9' %}selected{% endif %}>9 anos</option>
+				<option value="10" {% if user_settings.idade == '10' %}selected{% endif %}>10 anos</option>
+				<option value="11" {% if user_settings.idade == '11' %}selected{% endif %}>11 anos</option>
+				<option value="12" {% if user_settings.idade == '12' %}selected{% endif %}>12 anos</option>
+				<option value="13" {% if user_settings.idade == '13' %}selected{% endif %}>13 anos</option>
+				<option value="14" {% if user_settings.idade == '14' %}selected{% endif %}>14 anos</option>
+				<option value="15" {% if user_settings.idade == '15' %}selected{% endif %}>15 anos</option>
+				<option value="16" {% if user_settings.idade == '16' %}selected{% endif %}>16 anos</option>
+				<option value="17" {% if user_settings.idade == '17' %}selected{% endif %}>17 anos</option>
+				<option value="18" {% if user_settings.idade == '18' %}selected{% endif %}>18 anos</option>
+				<option value="19" {% if user_settings.idade == '19' %}selected{% endif %}>19 anos</option>
+				<option value="20" {% if user_settings.idade == '20' %}selected{% endif %}>+20 anos</option>
+            </select><br><br>
+
+            <button type="submit">Salvar Alterações</button>
+            <a href="{{ url_for('index') }}">Voltar</a>
+        </form>
+    </div>
+</body>
+</html>

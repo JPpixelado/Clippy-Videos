@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+<head>
+    <meta charset="UTF-8">
+    <title>buscar videos | ClipEngine</title>
+    <style>
+body {
+  font-family: 'Roboto', Arial, sans-serif;
+  background: #f5f5f5;
+  background-color: {{ user_settings.cor_fundo }} !important;
+  padding: 30px;
+  margin: 0;
+  color: #333;
+}
+
+h1 {
+  font-size: 28px;
+  margin-bottom: 20px;
+  color: #202124;
+}
+
+input {
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  transition: border 0.2s ease;
+}
+
+input:focus {
+  outline: none;
+  border-color: #4285f4;
+  box-shadow: 0 0 0 2px rgba(66,133,244,0.2);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+.video-card {
+  background: white;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.video-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+video {
+  width: 100%;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.video-card h3 {
+  font-size: 18px;
+  margin: 8px 0;
+  color: #202124;
+}
+
+.video-card p {
+  font-size: 14px;
+  color: #5f6368;
+}
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 220px;
+  height: 100vh;
+  background-color: #202124;
+  color: white;
+  padding: 20px;
+  z-index: 999;
+  display: none;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.3);
+}
+
+.sidebar h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  margin-bottom: 30px;
+}
+
+.sidebar h2 img {
+  width: 24px;
+  height: 24px;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  color: white;
+  text-decoration: none;
+  font-size: 16px;
+  transition: background 0.2s ease;
+}
+
+.menu-item img {
+  width: 20px;
+  height: 20px;
+}
+
+.menu-item:hover {
+  background-color: #303134;
+  border-radius: 6px;
+  padding-left: 10px;
+}
+    </style>
+</head>
+<body>
+      <!-- Botão hambúrguer -->
+<button id="menuToggle" style="
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  background: #202020;
+  border: none;
+  padding: 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  z-index: 1000;
+">
+  <img src="{{ url_for('static', filename='menu.png') }}" alt="Menu" style="width:24px; height:24px;">
+</button>
+
+<div class="sidebar" style="display:none; position:fixed; top:0; left:0; width:220px; height:100vh; background:#202020; color:white; padding:20px; z-index:999;">
+  <h2><img src="{{ url_for('static', filename='favicon.png') }}">Clip Engine</h2>
+  <a href="/" class="menu-item"><img src="{{ url_for('static', filename='home.png') }}"> início</a>
+  <a href="/buscar" class="menu-item"><img src="{{ url_for('static', filename='search.png') }}"> pesquisar</a>
+  <a href="/canais"><img src="{{ url_for('static', filename='channels.png') }}"> canais</a>
+  <a href="/create"><img src="{{ url_for('static', filename='studio.png') }}"> Studio</a>
+  <a href="/login"><img src="{{ url_for('static', filename='user.png') }}"> login</a>
+  <a href="/download"><img src="{{ url_for('static', filename='channels.png') }}">download</a>
+  <a href="/criar-playlist"><img src="{{ url_for('static', filename='playlist.png') }}"> criar playlist</a>
+</div>
+    <h1>🔍 Buscar vídeos e canais</h1>
+<input type="text" id="searchInput" placeholder="Digite o título ou descrição...">
+
+<div class="container">
+  <h2>📺 Vídeos</h2>
+  <div class="grid" id="videoGrid">
+    {% for video in videos %}
+    <div class="video-card">
+      <a href="/player/{{ video.id }}">
+        <video muted>
+          <source src="/static/uploads/{{ video.filename }}" type="video/mp4">
+        </video>
+        <h3>{{ video.title }}</h3>
+      </a>
+      <p>{{ video.description }}</p>
+    </div>
+    {% else %}
+    <p>Nenhum vídeo encontrado.</p>
+    {% endfor %}
+  </div>
+
+  <h2>👤 Canais</h2>
+  <div class="grid">
+    {% for canal in canais %}
+    <div class="video-card">
+      <a href="/@{{ canal.username }}" style="text-decoration:none; color:#202124;">
+        <img src="/channels/@{{ canal.username }}/foto.jpg" alt="Foto do canal" style="width:100%; border-radius:8px; margin-bottom:10px;">
+        <h3>{{ canal.display_name }}</h3>
+      </a>
+      <p>{{ canal.bio }}</p>
+    </div>
+    {% else %}
+    <p>Nenhum canal encontrado.</p>
+    {% endfor %}
+  </div>
+</div>
+
+    <script>
+    const videos = {{ videos|tojson }};
+    const grid = document.getElementById('videoGrid');
+    const input = document.getElementById('searchInput');
+
+    function render(videosFiltrados) {
+        grid.innerHTML = '';
+        if (videosFiltrados.length === 0) {
+            grid.innerHTML = '<p>Nenhum vídeo encontrado.</p>';
+            return;
+        }
+        videosFiltrados.forEach(video => {
+            const card = document.createElement('div');
+            card.className = 'video-card';
+            card.innerHTML = `
+                <a href="/player/${video.id}">
+                    <video muted>
+                        <source src="/static/uploads/${video.filename}" type="video/mp4">
+                    </video>
+                    <h3>${video.title}</h3>
+                </a>
+                <p>${video.description}</p>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    input.addEventListener('input', () => {
+        const termo = input.value.toLowerCase();
+        const filtrados = videos.filter(v =>
+            v.title.toLowerCase().includes(termo) ||
+            v.description.toLowerCase().includes(termo)
+        );
+        render(filtrados);
+    });
+
+    render(videos); // mostra todos inicialmente
+document.getElementById('menuToggle').addEventListener('click', function() {
+  const sidebar = document.querySelector('.sidebar');
+  sidebar.style.display = (sidebar.style.display === 'none' || sidebar.style.display === '') ? 'block' : 'none';
+});
+const voiceBtn = document.getElementById('voiceBtn');
+
+voiceBtn.addEventListener('click', () => {
+  const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+  recognition.lang = 'pt-BR';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  recognition.start();
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    input.value = transcript;
+    input.dispatchEvent(new Event('input')); // dispara busca
+  };
+
+  recognition.onerror = (event) => {
+    alert('Erro no reconhecimento de voz: ' + event.error);
+  };
+});
+    </script>
+</body>
+</html>

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>{{ video.title }} | Clippy</title>
+  <style>
+    :root {
+      --primary: #ff2d8d;
+      --bg: #000;
+      --text: #fff;
+      --surface: #1a1a1a;
+    }
+
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font-family: -apple-system, system-ui, sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* --- CONTAINER DO PLAYER --- */
+    .player-container {
+      position: sticky; top: 0;
+      width: 100%; aspect-ratio: 16/9;
+      background: #000; z-index: 1000;
+    }
+
+    video { width: 100%; height: 100%; object-fit: contain; }
+
+    /* Overlay de Controlos */
+    .controls-overlay {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.4);
+      display: flex; flex-direction: column;
+      justify-content: space-between;
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .controls-overlay.active { opacity: 1; }
+
+    .top-bar { padding: 10px; display: flex; justify-content: flex-end; }
+    
+    .center-actions {
+      display: flex; justify-content: center; align-items: center; gap: 40px;
+    }
+    .center-actions img { width: 40px; height: 40px; }
+
+    /* Barra de Progresso Mobile */
+    .bottom-bar { padding: 10px; }
+    .progress-container {
+      width: 100%; height: 4px; background: rgba(255,255,255,0.3);
+      position: relative; border-radius: 2px; margin-bottom: 10px;
+    }
+    .progress-fill {
+      height: 100%; background: var(--primary); width: 0%; border-radius: inherit;
+    }
+
+    /* --- INFORMAÇÕES DO VÍDEO --- */
+    .video-details { padding: 15px; border-bottom: 1px solid var(--surface); }
+    .video-title { font-size: 18px; font-weight: bold; margin-bottom: 8px; }
+    .video-stats { font-size: 13px; color: #aaa; margin-bottom: 15px; }
+
+    .action-buttons {
+      display: flex; gap: 20px; overflow-x: auto; padding-bottom: 5px;
+    }
+    .action-btn {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--surface); padding: 8px 16px;
+      border-radius: 20px; font-size: 14px; white-space: nowrap;
+    }
+
+    /* --- SEÇÃO DE COMENTÁRIOS / RELACIONADOS --- */
+    .tabs {
+      display: flex; border-bottom: 1px solid var(--surface);
+    }
+    .tab {
+      flex: 1; text-align: center; padding: 15px;
+      font-size: 14px; font-weight: bold; color: #aaa;
+    }
+    .tab.active { color: var(--text); border-bottom: 2px solid var(--primary); }
+
+    .related-list { padding: 10px; }
+    .related-card {
+      display: flex; gap: 12px; margin-bottom: 12px; text-decoration: none; color: inherit;
+    }
+    .related-thumb {
+      width: 140px; aspect-ratio: 16/9; border-radius: 8px; object-fit: cover;
+    }
+    .related-info h4 { margin: 0; font-size: 14px; line-height: 1.2; }
+    .related-info p { margin: 4px 0 0; font-size: 12px; color: #aaa; }
+
+    /* Double Tap Visual */
+    .tap-hint {
+      position: absolute; top: 0; width: 40%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(255,255,255,0.1); opacity: 0; pointer-events: none;
+      border-radius: 50%; transition: opacity 0.3s;
+    }
+    .tap-left { left: 0; }
+    .tap-right { right: 0; }
+  </style>
+</head>
+<body>
+
+  <div class="player-container" id="playerArea">
+    <video id="mainVideo" playsinline>
+      <source src="{{ static_url }}uploads/{{ video.filename }}" type="video/mp4">
+    </video>
+
+    <div id="hintLeft" class="tap-hint tap-left"><span>-10s</span></div>
+    <div id="hintRight" class="tap-hint tap-right"><span>+10s</span></div>
+
+    <div class="controls-overlay" id="controls">
+      <div class="top-bar">
+        <button class="btn" onclick="toggleSettings()"><img src="{{ static_url }}icons/settings.png" width="24"></button>
+      </div>
+
+      <div class="center-actions">
+        <img src="{{ static_url }}icons/backward.png" onclick="seek(-10)">
+        <img id="playBtn" src="{{ static_url }}icons/play.png" onclick="togglePlay()" style="width: 60px; height: 60px;">
+        <img src="{{ static_url }}icons/forward.png" onclick="seek(10)">
+      </div>
+
+      <div class="bottom-bar">
+        <div class="progress-container">
+          <div class="progress-fill" id="progressBar"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 12px;">
+          <span id="currentTime">00:00</span>
+          <span id="duration">00:00</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="video-details">
+    <h1 class="video-title">{{ video.title }}</h1>
+    <div class="video-stats">{{ video.views }} visualizações • {{ video.data_postagem }}</div>
+    
+    <div class="action-buttons">
+      <div class="action-btn">👍 {{ video.likes or 0 }}</div>
+      <div class="action-btn">👎</div>
+      <div class="action-btn">➡️ Partilhar</div>
+      <div class="action-btn">📥 Download</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active">Relacionados</div>
+    <div class="tab">Comentários</div>
+  </div>
+
+  <div class="related-list">
+    {% for rel in relacionados %}
+    <a href="/lang=mobile/video/{{ rel.id }}" class="related-card">
+      <img src="{{ static_url }}uploads/{{ rel.thumb }}" class="related-thumb">
+      <div class="related-info">
+        <h4>{{ rel.title }}</h4>
+        <p>{{ rel.views }} views</p>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+
+  <script>
+    const video = document.getElementById('mainVideo');
+    const controls = document.getElementById('controls');
+    const playBtn = document.getElementById('playBtn');
+    const progressBar = document.getElementById('progressBar');
+    
+    // Toggle Controlos
+    let hideTimer;
+    function showControls() {
+      controls.classList.add('active');
+      clearTimeout(hideTimer);
+      hideTimer = setTimeout(() => {
+        if(!video.paused) controls.classList.remove('active');
+      }, 3000);
+    }
+
+    video.addEventListener('click', (e) => {
+      // Se for clique simples, mostra controlos
+      showControls();
+    });
+
+    // Double Tap para Seek
+    let lastTap = 0;
+    video.addEventListener('touchstart', (e) => {
+      const now = Date.now();
+      const diff = now - lastTap;
+      const x = e.touches[0].clientX;
+      const width = window.innerWidth;
+
+      if (diff < 300) {
+        if (x < width / 2) {
+          seek(-10);
+          showHint('left');
+        } else {
+          seek(10);
+          showHint('right');
+        }
+      }
+      lastTap = now;
+    });
+
+    function seek(amount) {
+      video.currentTime += amount;
+    }
+
+    function showHint(side) {
+      const el = side === 'left' ? document.getElementById('hintLeft') : document.getElementById('hintRight');
+      el.style.opacity = 1;
+      setTimeout(() => el.style.opacity = 0, 500);
+    }
+
+    function togglePlay() {
+      if (video.paused) {
+        video.play();
+        playBtn.src = "{{ static_url }}icons/pause.png";
+      } else {
+        video.pause();
+        playBtn.src = "{{ static_url }}icons/play.png";
+      }
+    }
+
+    // Atualizar Barra
+    video.addEventListener('timeupdate', () => {
+      const pct = (video.currentTime / video.duration) * 100;
+      progressBar.style.width = pct + '%';
+      document.getElementById('currentTime').innerText = formatTime(video.currentTime);
+    });
+
+    video.onloadedmetadata = () => {
+      document.getElementById('duration').innerText = formatTime(video.duration);
+    };
+
+    function formatTime(s) {
+      const min = Math.floor(s / 60);
+      const sec = Math.floor(s % 60);
+      return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+    }
+  </script>
+</body>
+</html>

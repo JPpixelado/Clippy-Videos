@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Procurar Pessoas</title>
+    <style>
+        body { font-family: sans-serif; background: #f5f5f5; padding: 20px; 
+		background-color: {{ user_settings.cor_fundo }} !important;
+		}
+        .search-box { max-width: 500px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        input { width: 80%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        button { padding: 10px; background: #0084ff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .result-item { display: flex; align-items: center; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; }
+        .user-info { display: flex; align-items: center; gap: 10px; }
+        .avatar { width: 40px; height: 40px; border-radius: 50%; background: #ddd; }
+        .chat-btn { text-decoration: none; background: #28a745; color: white; padding: 5px 15px; border-radius: 15px; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="search-box">
+    <h2>Procurar Pessoas</h2>
+    <form action="/buscar_contas" method="GET">
+        <input type="text" name="q" placeholder="Digite o nome de usuário..." value="{{ query }}">
+        <button type="submit">🔍</button>
+    </form>
+
+    <div style="margin-top: 20px;">
+        {% for u in usuarios %}
+            <div class="result-item">
+                <div class="user-info">
+                    <img src="/foto_canal/{{ u.username }}" class="avatar" onerror="this.src='/static/user.png'">
+                    <strong>@{{ u.username }}</strong>
+                </div>
+                <a href="/iniciar_chat/{{ u.username }}" class="chat-btn">Conversar</a>
+            </div>
+        {% else %}
+            {% if query %}
+                <p style="color: #666; text-align: center;">Nenhum usuário encontrado.</p>
+            {% endif %}
+        {% endfor %}
+    </div>
+</div>
+
+</body>
+</html>

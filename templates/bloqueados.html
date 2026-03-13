@@ -1,0 +1,18 @@
+<h1>Vídeos Bloqueados</h1>
+<table>
+  <tr>
+    <th>Player</th><th>Título</th><th>Canal</th><th>Ações</th>
+  </tr>
+  {% for video in videos %}
+  <tr>
+    <td>
+      <video src="{{ static_url }}uploads/{{ video.filename }}" width="200" controls muted></video>
+    </td>
+    <td>{{ video.title }}</td>
+    <td>{{ video.channel }}</td>
+    <td>
+      <a href="{{ url_for('revisar_video', video_id=video.id) }}">🔁 Revisar</a>
+    </td>
+  </tr>
+  {% endfor %}
+</table>

@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ display_name }} | Clippy Vídeos creator studio</title>
+    <style>
+:root {
+    --primary: #e50914;
+    --primary-hover: #b0060f;
+    --dark: #181818;
+    --dark-2: #202020;
+    --card: #ffffff;
+    --border: #e5e5e5;
+    --text-muted: #777;
+}
+
+/* Reset básico */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+/* Corpo */
+body {
+    font-family: 'Segoe UI', Roboto, sans-serif;
+    background: {{ user_settings.cor_fundo }};
+    color: #111;
+}
+
+/* Header */
+header {
+    background: var(--dark);
+    color: white;
+    padding: 18px 30px;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* Layout principal */
+.layout {
+    display: flex;
+}
+
+/* Sidebar */
+nav {
+    width: 80px;
+    background: var(--dark-2);
+    padding: 25px 10px;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+}
+
+nav ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    align-items: center;
+}
+
+nav a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    text-decoration: none;
+    color: white;
+    font-size: 12px;
+    opacity: 0.85;
+    transition: 0.2s ease;
+}
+
+nav a:hover {
+    opacity: 1;
+    transform: scale(1.05);
+}
+
+/* Container */
+.container {
+    margin-left: 100px;
+    padding: 40px;
+    width: 100%;
+}
+
+/* Estatísticas */
+.stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 25px;
+    margin-bottom: 40px;
+}
+
+.stat-card {
+    background: var(--card);
+    padding: 30px;
+    border-radius: 14px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+    text-align: center;
+    transition: 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+}
+
+.stat-card h2 {
+    font-size: 32px;
+    color: var(--primary);
+    margin-bottom: 8px;
+}
+
+.stat-card p {
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+/* Seções */
+.section-title {
+    margin: 40px 0 20px;
+    font-size: 22px;
+    font-weight: 600;
+}
+
+/* Forms */
+form {
+    background: var(--card);
+    padding: 25px;
+    border-radius: 14px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+    margin-bottom: 30px;
+}
+
+input,
+textarea {
+    width: 100%;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-size: 14px;
+    transition: 0.2s;
+}
+
+input:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(229,9,20,0.1);
+}
+
+/* Botões */
+button {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: 0.2s ease;
+}
+
+button:hover {
+    background: var(--primary-hover);
+}
+
+/* Lista de vídeos */
+.video-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 25px;
+}
+
+.video-card {
+    background: var(--card);
+    padding: 15px;
+    border-radius: 14px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+    transition: 0.2s ease;
+}
+
+.video-card:hover {
+    transform: translateY(-4px);
+}
+
+.video-card iframe {
+    width: 100%;
+    height: 160px;
+    border-radius: 10px;
+    border: none;
+    margin-bottom: 10px;
+}
+
+.video-card h3 {
+    font-size: 16px;
+    margin-bottom: 5px;
+}
+
+.video-card p {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 50;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(3px);
+}
+
+.modal-content {
+    background: white;
+    margin: 6% auto;
+    padding: 30px;
+    border-radius: 16px;
+    width: 95%;
+    max-width: 550px;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+    animation: fadeIn 0.25s ease;
+}
+
+.close {
+    float: right;
+    font-size: 26px;
+    cursor: pointer;
+    color: #555;
+}
+
+.close:hover {
+    color: black;
+}
+
+/* Alertas */
+#uploadNotice,
+#errorMsg {
+    margin-top: 20px;
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+/* Animação */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+    nav {
+        width: 60px;
+    }
+
+    .container {
+        margin-left: 70px;
+        padding: 20px;
+    }
+
+    .video-card iframe {
+        height: 140px;
+    }
+}
+</style>
+</head>
+<body>
+    <header>{{ display_name }} — Studio</header>
+    <div style="display:flex;">
+  <!-- Menu lateral -->
+  <nav style="width:70px; background:#202020; color:white; padding:20px 10px; height:100vh; position:fixed; top:0; left:0;">
+  <ul style="list-style:none; padding:0; display:flex; flex-direction:column; gap:20px;">
+    <li>
+      <a href="{{ app_base_url }}" class="a">Voltar para Home</a>
+        <img src="{{ static_url }}home.png" width="24" height="24" title="Início">
+      </a>
+    </li>
+    <li>
+      <a href="#uploadModal" onclick="openModal()" class="a">
+        <img src="{{ static_url }}channels.png" width="24" height="24" title="Enviar vídeo">
+      </a>
+    </li>
+    <li>
+  <a href="{{ url_for('gerenciar_collabs', username=username) }}" class="a">
+    <img src="{{ url_for('static', filename='icons/collabs.png') }}" width="24" height="24" title="Colaborações">
+  </a>
+  <a href="/live" class="a">
+    <img src="{{ url_for('static', filename='icons/lives.png') }}" width="24" height="24" title="Criar Live">
+  </a>
+  <a href="@{{username}}/posts" class="a">
+    <img src="{{ url_for('static', filename='posts.png') }}" width="24" height="24" title="Criar post">
+  </a>
+</li>
+  </ul>
+</nav>
+    <div class="container" style="margin-left:90px;">
+        <!-- Estatísticas -->
+        <div class="stats">
+            <div class="stat-card">
+                <h2>{{ total_views }}</h2>
+                <p>Visualizações</p>
+            </div>
+            <div class="stat-card">
+                <h2>{{ total_videos }}</h2>
+                <p>Vídeos enviados</p>
+            </div>
+            <div class="stat-card">
+                <h2>{{ subscribers }}</h2>
+                <p>Inscritos</p>
+            </div>
+        </div>
+<div style="display:flex; align-items:center; gap:15px; margin-bottom:20px;">
+  <img src="/channels/@{{ username }}/foto.jpg" id="fotoAtual" style="width:80px; height:80px; border-radius:50%; box-shadow:0 0 5px rgba(0,0,0,0.2);">
+  <form method="POST" action="/trocar_foto" enctype="multipart/form-data" id="trocarFotoForm">
+    <input type="file" name="nova_foto" accept="image/*" id="fotoInput">
+	<input type="password" name="password" placeholder="Senha do canal" required>
+    <button type="submit">Trocar foto</button>
+  </form>
+</div>
+        <!-- Upload de vídeo -->
+        <button onclick="openModal()">Enviar vídeo</button>
+
+        <!-- Lista de vídeos -->
+        <h2 class="section-title">Seus vídeos</h2>
+        <div class="video-list">
+            {% for video in channel_videos %}
+            <div class="video-card">
+    <iframe src="{{ app_base_url }}watch/{{ video.id }}" allowfullscreen></iframe>
+	</a>
+    <h3>{{ video.title }}</h3>
+    <p>{{ video.views }} views</p>
+
+    <form method="POST" action="/delete_video/{{ video.id }}" onsubmit="return confirm('Tem certeza que deseja excluir este vídeo?');">
+        <button type="submit" style="background:#eff704fc; color:white; border:none; padding:8px 12px; border-radius:5px; cursor:pointer;">
+            Excluir vídeo
+        </button>
+    </form>
+                {% if video.collaborators %}
+<div style="margin-top:10px;">
+  <strong>Colaboradores:</strong>
+  <ul style="padding-left:15px;">
+    {% for c in video.collaborators %}
+    <li>{{ c.name }} ({{ c.role }}) {% if c.status == 'pedido' %}[pedido]{% endif %}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+            </div>
+            {% else %}
+            <p>Nenhum vídeo enviado ainda.</p>
+            {% endfor %}
+        </div>
+    </div>
+    <div style="margin-top: 50px; background: #fff; padding: 20px; border-radius: 8px; border-left: 5px solid #4285f4;">
+    <h3>🤝 Pedir para participar de um vídeo</h3>
+    <p>Envie um pedido para o dono do canal. Se ele aceitar, você aparecerá na lista de colaboradores.</p>
+    <form method="POST" action="/request_collab">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <input type="text" name="video_id" placeholder="ID do vídeo (ex: a1b2c3d4)" required style="border:1px solid #ccc;">
+            <input type="text" name="channel" placeholder="Canal dono do vídeo (ex: joao)" required style="border:1px solid #ccc;">
+            <input type="text" name="name" placeholder="Nome Do Seu Canal!" required style="border:1px solid #ccc;">
+            <input type="text" name="role" placeholder="Sua função (ex: Editor, Ator)" required style="border:1px solid #ccc;">
+        </div>
+        <button type="submit" style="margin-top: 10px; background: #4285f4;">Enviar Pedido</button>
+    </form>
+</div>
+
+<div id="uploadModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal()">&times;</span>
+
+    <form method="POST" action="/studio/{{ username }}/upload_video" enctype="multipart/form-data" id="uploadForm">
+      <input type="hidden" name="channel_username" value="{{ username }}">
+
+      <div id="step1" class="step">
+        <h3>Etapa 1: Upload do vídeo</h3>
+        <input type="password" name="password" placeholder="Senha do canal" required>
+        <input type="file" name="video" id="videoInput" accept="video/*, .mkv" required>
+        <button type="button" onclick="nextStep(1)">Próximo</button>
+      </div>
+
+      <div id="step2" class="step" style="display:none;">
+        <h3>Etapa 2: Informações do vídeo</h3>
+        <input type="text" name="title" placeholder="Título do vídeo" required>
+        <textarea name="description" placeholder="Descrição" rows="3" required></textarea>
+        <input type="file" name="thumb" accept="image/*">
+        <img id="thumbPreview" style="max-width: 100%; margin-top: 10px; display: none;">
+        <button type="submit">Enviar</button>
+      </div>
+
+      <div id="step3" class="step" style="display:none;">
+        <h3>Etapa 3: Enviando vídeo</h3>
+        <p id="tempoEstimado"></p>
+        <p style="color:#b0060f;">⚠️ Não feche esta aba até o envio terminar.</p>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Mensagem de aviso -->
+<div id="uploadNotice" style="
+  display:none;
+  margin-top:20px;
+  padding:15px;
+  background:#fff3cd;
+  color:#856404;
+  border:1px solid #ffeeba;
+  border-radius:5px;
+">
+  ⏳ O vídeo está sendo enviado. Não feche esta aba até o processo terminar.
+    </div>
+  </div>
+
+  <div id="errorMsg" style="
+  display:none;
+  margin-top:20px;
+  padding:15px;
+  background:#f8d7da;
+  color:#721c24;
+  border:1px solid #f5c6cb;
+  border-radius:5px;
+">
+  🚫 O arquivo é muito grande! O limite é 5 GB.
+</div>
+
+    <script>
+document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    const fileInput = document.getElementById('videoInput');
+    const errorMsg = document.getElementById('errorMsg');
+    const maxSize = 5 * 1024 * 1024 * 1024; // 5 GB em bytes
+
+    if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        if (file.size > maxSize) {
+            e.preventDefault(); // cancela envio
+            errorMsg.style.display = 'block';
+        }
+    }
+});
+function openModal() {
+  document.getElementById('uploadModal').style.display = 'block';
+}
+function closeModal() {
+  document.getElementById('uploadModal').style.display = 'none';
+}
+
+document.querySelector('input[name="thumb"]').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  const preview = document.getElementById('thumbPreview');
+  if (file) {
+    preview.src = URL.createObjectURL(file);
+    preview.style.display = 'block';
+  }
+});
+document.getElementById('fotoInput').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  const preview = document.getElementById('fotoAtual');
+  if (file) {
+    preview.src = URL.createObjectURL(file);
+  }
+});
+document.getElementById('uploadForm').addEventListener('submit', function() {
+  document.getElementById('uploadNotice').style.display = 'block';
+});
+
+document.querySelector('input[name="thumb"]').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  const preview = document.getElementById('thumbPreview');
+  if (file) {
+    preview.src = URL.createObjectURL(file);
+    preview.style.display = 'block';
+  }
+});
+function nextStep(current) {
+  document.getElementById(`step${current}`).style.display = 'none';
+  document.getElementById(`step${current + 1}`).style.display = 'block';
+}
+
+document.querySelector('input[name="thumb"]').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  const preview = document.getElementById('thumbPreview');
+  if (file) {
+    preview.src = URL.createObjectURL(file);
+    preview.style.display = 'block';
+  }
+});
+document.getElementById('uploadForm').addEventListener('submit', function() {
+  document.getElementById('step1').style.display = 'none';
+  document.getElementById('step2').style.display = 'none';
+  document.getElementById('step3').style.display = 'block';
+
+  const file = document.getElementById('videoInput').files[0];
+  if (file) {
+    const tamanhoMB = file.size / (1024 * 1024);
+    const taxaUpload = 1.5; // MB/s (ajuste conforme sua rede)
+    const tempoSegundos = tamanhoMB / taxaUpload;
+    const minutos = Math.floor(tempoSegundos / 60);
+    const segundos = Math.round(tempoSegundos % 60);
+
+    const tempoTexto = `Estimativa: ${minutos} min ${segundos} seg para ${Math.round(tamanhoMB)} MB`;
+    document.getElementById('tempoEstimado').textContent = tempoTexto;
+  }
+});
+</script>
+</body>
+</html>

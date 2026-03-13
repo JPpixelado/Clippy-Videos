@@ -1,0 +1,27 @@
+<doctype html>
+<html>
+<head>
+<title>histórico de vídeos</title>
+<style>
+background-color: {{ user_settings.cor_fundo }} !important;
+</style>
+</head>
+<body>
+<h1>Histórico de vídeos</h1>
+
+{% if videos %}
+    <ul>
+        {% for v in videos %}
+            <li>
+                <a href="/player/{{ v.id }}">
+                    <img src="/static/uploads/{{ v.thumb }}" width="120">
+                    {{ v.title }}
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>Nenhum vídeo assistido ainda.</p>
+{% endif %}
+</body>
+</html>

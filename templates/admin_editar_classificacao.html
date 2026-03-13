@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Editar Classificação - {{ video.title }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            padding: 30px;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #e50914;
+            text-align: center;
+        }
+        label {
+            display: block;
+            margin: 20px 0 8px;
+            font-weight: bold;
+        }
+        select, button {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+        button {
+            background: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        button:hover {
+            background: #218838;
+        }
+        .back {
+            display: block;
+            margin-top: 30px;
+            text-align: center;
+            color: #0066cc;
+            text-decoration: none;
+        }
+        .flash {
+            padding: 12px;
+            margin: 15px 0;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Editar Classificação Etária</h2>
+        <p><strong>Vídeo:</strong> {{ video.title }}</p>
+        <p><strong>Classificação atual:</strong> {{ video.classificacao or 'L (Livre)' }}</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash {{ 'success' if category == 'message' else 'error' }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST">
+            <label for="classificacao">Nova classificação:</label>
+            <select name="classificacao" id="classificacao" required>
+                <option value="L" {% if video.classificacao == 'L' %}selected{% endif %}>L - Livre para todos</option>
+                <option value="10" {% if video.classificacao == '10' %}selected{% endif %}>10 anos</option>
+                <option value="A10" {% if video.classificacao == 'A10' %}selected{% endif %}>A10 - Acompanhado até 10 anos</option>
+                <option value="12" {% if video.classificacao == '12' %}selected{% endif %}>12 anos</option>
+                <option value="A12" {% if video.classificacao == 'A12' %}selected{% endif %}>A12 - Acompanhado até 12 anos</option>
+                <option value="14" {% if video.classificacao == '14' %}selected{% endif %}>14 anos</option>
+                <option value="A14" {% if video.classificacao == 'A14' %}selected{% endif %}>A14 - Acompanhado até 14 anos</option>
+                <option value="16" {% if video.classificacao == '16' %}selected{% endif %}>16 anos</option>
+                <option value="A16" {% if video.classificacao == 'A16' %}selected{% endif %}>A16 - Acompanhado até 16 anos</option>
+                <option value="18" {% if video.classificacao == '18' %}selected{% endif %}>18 anos</option>
+                <option value="A18" {% if video.classificacao == 'A18' %}selected{% endif %}>A18 - Acompanhado até 18 anos</option>
+            </select>
+
+            <button type="submit">Salvar Alteração</button>
+        </form>
+
+        <a href="{{ url_for('admin.dashboard') }}" class="back">← Voltar ao Painel Admin</a>
+    </div>
+</body>
+</html>

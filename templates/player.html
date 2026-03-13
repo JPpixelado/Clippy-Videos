@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>
+    {% if tipo == "video" %}{{ video.title }}{% else %}{{ live.title }}{% endif %} | Clippy Videos
+  </title>
+  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+ 
+  <style>
+    :root {
+      --primary-color: #4285f4;
+      --sidebar-bg: rgba(32, 33, 36, 0.98);
+      --card-bg: #ffffff;
+      --text-main: #202124;
+    }
+    body {
+      margin: 0;
+      font-family: 'Roboto', sans-serif;
+      background-color: {{ user_settings.cor_fundo|default('#f5f5f5') }};
+      color: var(--text-main);
+      transition: background 0.3s ease;
+    }
+    /* Botão Hamburger */
+    #menuToggle {
+      position: fixed;
+      top: 15px;
+      left: 15px;
+      width: 45px;
+      height: 45px;
+      background: #202020;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 1100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      transition: transform 0.3s ease;
+    }
+    #menuToggle.active { transform: rotate(90deg); }
+    #menuToggle img { width: 22px; height: 22px; filter: invert(1); }
+    /* Sidebar Melhorada */
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 250px;
+      height: 100vh;
+      background: var(--sidebar-bg);
+      backdrop-filter: blur(10px);
+      color: white;
+      padding: 80px 15px 20px;
+      box-sizing: border-box;
+      transform: translateX(-100%);
+      transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 1000;
+      overflow-y: auto;
+    }
+    .sidebar.active { transform: translateX(0); }
+    .sidebar h2 {
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      padding: 0 10px;
+    }
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding: 12px 15px;
+      color: #e0e0e0;
+      text-decoration: none;
+      border-radius: 8px;
+      transition: all 0.2s;
+      margin-bottom: 4px;
+    }
+    .menu-item:hover { background: rgba(255,255,255,0.1); color: white; }
+    .menu-item img { width: 20px; height: 20px; filter: brightness(0) invert(1); }
+    /* Layout em Grade (YouTube Style) */
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 350px;
+      gap: 24px;
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 80px 20px 40px;
+      transition: margin-left 0.4s;
+    }
+    @media (max-width: 1100px) {
+      .container { grid-template-columns: 1fr; }
+    }
+    /* Player */
+    .video-section iframe {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border: none;
+      border-radius: 12px;
+      background: #000;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    .video-info {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 12px;
+      margin-top: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    /* Botões de Ação */
+    .action-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid #eee;
+    }
+    .btn {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: opacity 0.2s;
+    }
+    .btn-like { background: #e8f0fe; color: #1a73e8; }
+    .btn-dislike { background: #fce8e6; color: #d93025; }
+    .btn-pro { background: #2ecc71; color: white; text-decoration: none; }
+    .btn-locked { background: #95a5a6; color: white; text-decoration: none; cursor: help; }
+    .btn-add-playlist { background: #f0f4f8; color: #333; }
+    /* Comentários */
+    .comments-section {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: 12px;
+      margin-top: 20px;
+    }
+    .comment-form textarea {
+      width: 100%;
+      border: none;
+      border-bottom: 2px solid #eee;
+      padding: 10px;
+      resize: none;
+      margin-bottom: 10px;
+      transition: border-color 0.3s;
+    }
+    .comment-form textarea:focus { border-color: var(--primary-color); outline: none; }
+    /* Relacionados */
+    .related-section h2 { font-size: 1.1rem; margin-top: 0; }
+    .related-card {
+      display: flex;
+      gap: 12px;
+      text-decoration: none;
+      color: inherit;
+      margin-bottom: 15px;
+    }
+    .related-card img {
+      width: 140px;
+      aspect-ratio: 16/9;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+    .related-card h4 { margin: 0; font-size: 0.9rem; line-height: 1.2; }
+/* Container das fotos (Stack) */
+.profile-stack {
+    display: flex;
+    align-items: center;
+    margin-right: 10px;
+}
+.profile-stack a {
+    text-decoration: none;
+    display: flex;
+    margin-left: -12px; /* Faz as fotos se sobreporem */
+    transition: transform 0.2s;
+}
+.profile-stack a:first-child {
+    margin-left: 0; /* A primeira foto não sobrepõe nada */
+    z-index: 5;
+}
+.profile-stack a:hover {
+    transform: translateY(-3px);
+    z-index: 10; /* Fica por cima ao passar o mouse */
+}
+.avatar-img {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 3px solid #fff; /* Borda branca para separar as fotos */
+    object-fit: cover;
+    background: #ccc;
+}
+.collab-avatar {
+    width: 40px; /* Colaboradores um pouco menores para destaque do dono */
+    height: 40px;
+}
+.channel-names {
+    display: flex;
+    flex-direction: column;
+}
+.playlist-select {
+    padding: 10px;
+    border-radius: 20px;
+    border: 1px solid #ddd;
+    background: #fff;
+    font-size: 0.9rem;
+    margin-right: 8px;
+}
+  </style>
+</head>
+<body>
+  <button id="menuToggle" title="Abrir Menu">
+    <img src="{{ static_url }}menu.png" alt="Menu">
+  </button>
+  <nav class="sidebar" id="sidebar">
+    <h2><img src="{{ static_url }}clip.gif" alt="" style="width:30px"> Clippy Vídeos</h2>
+    <a href="/" class="menu-item"><img src="{{ static_url }}home.png"> Início</a>
+    <a href="/buscar" class="menu-item"><img src="{{ static_url }}search.png"> Pesquisar</a>
+    <a href="/shorts" class="menu-item"><img src="{{ static_url }}tia.png"> Shorts</a>
+    <a href="/create" class="menu-item"><img src="{{ static_url }}studio.png"> Studio</a>
+    {% if studio_link %}
+      <a href="{{ studio_link }}" class="menu-item"><img src="{{ static_url }}studio.png"> Entrar no Studio</a>
+    {% endif %}
+    <a href="/login" class="menu-item"><img src="{{ static_url }}user.png"> Login</a>
+    <a href="/download" class="menu-item"><img src="{{ static_url }}channels.png"> Download</a>
+    <a href="/aovivo" class="menu-item"><img src="{{ static_url }}w.png"> Lives</a>
+    <a href="/historico" class="menu-item"><img src="{{ static_url }}history.png"> Histórico</a>
+    <a href="/chats" class="menu-item">💬 Chats</a>
+    <a href="/configs" class="menu-item">⚙️ Configurações</a>
+  </nav>
+  <div class="container">
+    <main class="video-section">
+      {% if tipo == "video" %}
+        <iframe src="{{ url_for('watch', video_id=video.id) }}" allowfullscreen></iframe>
+      {% else %}
+        <iframe src="{{ url_for('lives', live_id=live.id) }}" allowfullscreen></iframe>
+      {% endif %}
+      <div class="video-info">
+        <h1 style="font-size: 1.4rem; margin: 0 0 10px 0;">
+          {% if tipo == "video" %}{{ video.title }}{% else %}🔴 {{ live.title }}{% endif %}
+        </h1>
+       
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+    <div class="profile-stack">
+        <a href="/@{{ canal_username }}" title="{{ canal_display_name }}">
+            <img src="/foto_canal/{{ canal_username }}" class="avatar-img" alt="">
+        </a>
+        {% for collab in collabs %}
+            {% if collab.status == 'accepted' or collab.status == 'aceito' %}
+            <a href="/@{{ collab.name }}" title="{{ collab.name }} ({{ collab.role }})">
+                <img src="/foto_canal/{{ collab.name }}" class="avatar-img collab-avatar" alt="">
+            </a>
+            {% endif %}
+        {% endfor %}
+    </div>
+    <div class="channel-names">
+        <div style="font-weight: bold; display: flex; align-items: center; gap: 5px;">
+            {{ canal_display_name }}
+            {% for collab in collabs %}
+                {% if collab.status == 'accepted' or collab.status == 'aceito' %}
+                    <span style="color: #606060; font-weight: normal;"> & </span> {{ collab.name }}
+                {% endif %}
+            {% endfor %}
+        </div>
+        <div style="font-size: 0.85rem; color: #606060;">
+            @{{ canal_username }} • {{ canal_bio[:50] }}...
+        </div>
+    </div>
+</div>
+           
+            <div class="action-bar">
+                {% if tipo == "video" %}
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-like" id="likeBtn">👍 <span id="likeCount">{{ likes.get(video.id|string, 0) }}</span></button>
+                        <button class="btn btn-dislike" id="dislikeBtn">👎</button>
+                    </div>
+                    {% if session.get('username') %}
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <select id="playlistSelect" class="playlist-select">
+                            <option value="">Adicionar à playlist...</option>
+                            {% for pl in playlists %}
+                            <option value="{{ pl.id }}">{{ pl.title }}</option>
+                            {% endfor %}
+                        </select>
+                        <button class="btn btn-add-playlist" id="addToPlaylistBtn">➕ Adicionar</button>
+                    </div>
+                    {% else %}
+                    <a href="/login" class="btn btn-add-playlist">➕ Login para adicionar</a>
+                    {% endif %}
+                {% else %}
+                    <div class="btn" style="background: #f0f0f0;">👥 {{ live.viewers or 0 }} assistindo</div>
+                {% endif %}
+            </div>
+        </div>
+        <div style="margin-top: 15px; font-size: 0.95rem; color: #333; background: #f9f9f9; padding: 12px; border-radius: 8px;">
+            {% if tipo == "video" %}
+                <strong>{{ video.views }} visualizações</strong> • {{ video.description }}
+            {% else %}
+                Transmissão ao vivo de {{ live.channel }}
+            {% endif %}
+        </div>
+        {% if session.get('is_pro') and tipo == "video" %}
+            <a href="/download/{{ video.id }}" class="btn btn-pro" style="margin-top:15px; display:inline-flex;">📥 Baixar Vídeo (PRO)</a>
+        {% elif tipo == "video" %}
+            <a href="/pro" class="btn btn-locked" style="margin-top:15px; display:inline-flex;">🔒 Baixar Vídeo (Apenas PRO)</a>
+        {% endif %}
+      </div>
+      <section class="comments-section">
+        <h3>Comentários</h3>
+        {% if tipo == "video" %}
+            {% if session.get('username') %}
+                <div class="comment-form">
+                    <form action="/comentar/{{ video.id }}" method="POST">
+                        <textarea name="comentario" placeholder="Escreva algo público..." required></textarea>
+                        <button type="submit" class="btn btn-like" style="background: var(--primary-color); color: white;">Publicar</button>
+                    </form>
+                </div>
+            {% endif %}
+           
+            <div style="margin-top: 25px;">
+                {% for linha in comentarios %}
+                    {% set partes = linha.split('|', 1) %}
+                    {% if partes|length == 2 %}
+                        <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+                            <img src="{{ static_url }}user.png" style="width: 35px; height: 35px; border-radius: 50%;">
+                            <div>
+                                <div style="font-weight: bold; font-size: 0.85rem;">@{{ partes[0] }}</div>
+                                <div style="font-size: 0.95rem;">{{ partes[1] }}</div>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>💬 Chat da live disponível apenas no modo Full.</p>
+        {% endif %}
+      </section>
+    </main>
+    <aside class="related-section">
+      <h2>Próximos vídeos</h2>
+      {% for v in relacionados %}
+      <a href="{{ url_for('player', item_id=v.id) }}" class="related-card">
+        <img src="{{ static_url }}uploads/{{ v.thumb }}" alt="thumb">
+        <div>
+          <h4>{{ v.title }}</h4>
+          <small style="color: #606060;">@{{ v.channel }}</small><br>
+          <small style="color: #606060;">{{ v.views }} visualizações</small>
+        </div>
+      </a>
+      {% endfor %}
+    </aside>
+  </div>
+  <script>
+    const toggleBtn = document.getElementById('menuToggle');
+    const sidebar = document.getElementById('sidebar');
+    toggleBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('active');
+      toggleBtn.classList.toggle('active');
+    });
+    // Fechar sidebar ao clicar fora em dispositivos móveis
+    document.addEventListener('click', (e) => {
+        if (!sidebar.contains(e.target) && !toggleBtn.contains(e.target) && sidebar.classList.contains('active')) {
+            sidebar.classList.remove('active');
+            toggleBtn.classList.remove('active');
+        }
+    });
+    {% if tipo == "video" %}
+    document.getElementById('likeBtn').addEventListener('click', () => {
+      fetch('/like_video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: "{{ video.id }}" })
+      }).then(res => {
+        if (res.ok) {
+            let count = document.getElementById('likeCount');
+            count.innerText = parseInt(count.innerText) + 1;
+        }
+      });
+    });
+    document.getElementById('dislikeBtn').addEventListener('click', () => {
+      alert('Feedback enviado!');
+    });
+    {% if session.get('username') %}
+    document.getElementById('addToPlaylistBtn').addEventListener('click', () => {
+      const select = document.getElementById('playlistSelect');
+      const playlist_id = select.value;
+      if (playlist_id) {
+        fetch('/playlist/adicionar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: `playlist_id=${playlist_id}&video_id={{ video.id }}`
+        }).then(res => res.json()).then(data => {
+          if (data.success) {
+            alert(data.message);
+          } else {
+            alert(data.error || 'Erro ao adicionar');
+          }
+        }).catch(err => {
+          alert('Erro: ' + err.message);
+        });
+      } else {
+        alert('Selecione uma playlist');
+      }
+    });
+    {% endif %}
+    {% endif %}
+  </script>
+</body>
+</html>

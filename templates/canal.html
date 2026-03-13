@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ display_name }} | ClipEngine</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4285f4;
+            --primary-dark: #3367d6;
+            --bg: {{ user_settings.cor_fundo|default('#f5f5f5') }};
+            --text: #202124;
+            --text-secondary: #5f6368;
+            --card-bg: white;
+            --shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        body {
+            margin: 0;
+            font-family: 'Roboto', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+        .layout {
+            display: flex;
+            min-height: 100vh;
+        }
+        /* Sidebar */
+        .sidebar {
+            width: 240px;
+            background: #202124;
+            color: white;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            padding: 32px 20px;
+            box-shadow: 2px 0 12px rgba(0,0,0,0.25);
+            overflow-y: auto;
+        }
+        .sidebar h2 {
+            font-size: 1.4rem;
+            margin: 0 0 32px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .sidebar a {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            color: #e0e0e0;
+            text-decoration: none;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+        }
+        .sidebar a:hover,
+        .sidebar a.active {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+        .sidebar img {
+            width: 24px;
+            height: 24px;
+            filter: brightness(0) invert(1);
+        }
+
+        /* Conteúdo principal */
+        .main-content {
+            margin-left: 240px;
+            flex: 1;
+            padding: 32px;
+        }
+        header {
+            background: #202124;
+            color: white;
+            padding: 40px 32px;
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            flex-wrap: wrap;
+            border-radius: 0 0 16px 16px;
+        }
+        header img {
+            width: 140px;
+            height: 140px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 4px solid rgba(255,255,255,0.2);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+        }
+        header .info {
+            flex: 1;
+            min-width: 300px;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 2.2rem;
+        }
+        header p.bio {
+            margin: 8px 0;
+            font-size: 1.05rem;
+            opacity: 0.9;
+        }
+        .stats {
+            margin: 12px 0;
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        .subscribe-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            font-size: 1rem;
+            font-weight: 500;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+        .subscribe-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+        .subscribed {
+            background: #2e7d32;
+            cursor: default;
+        }
+
+        /* Vídeos */
+        .videos-section {
+            margin-top: 40px;
+        }
+        .videos-section h2 {
+            font-size: 1.6rem;
+            margin-bottom: 24px;
+            color: var(--text);
+        }
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 24px;
+        }
+        .video-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+        .video-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+        }
+        .video-card video {
+            width: 100%;
+            aspect-ratio: 16/9;
+            object-fit: cover;
+            background: #000;
+        }
+        .video-info {
+            padding: 16px;
+        }
+        .video-info h3 {
+            margin: 0 0 8px;
+            font-size: 1.1rem;
+            line-height: 1.4;
+        }
+        .video-info .meta {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Responsividade */
+        @media (max-width: 1024px) {
+            .sidebar { width: 200px; }
+            .main-content { margin-left: 200px; }
+        }
+        @media (max-width: 768px) {
+            .layout { flex-direction: column; }
+            .sidebar {
+                position: relative;
+                width: 100%;
+                height: auto;
+                padding: 20px;
+            }
+            .main-content { margin-left: 0; padding: 20px; }
+            header { flex-direction: column; text-align: center; padding: 32px 20px; }
+            header img { margin: 0 auto; }
+        }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <h2>Menu</h2>
+            <a href="/"><img src="{{ static_url }}home.png" alt=""> Início</a>
+            <a href="/buscar"><img src="{{ static_url }}search.png" alt=""> Buscar</a>
+            <a href="/login"><img src="{{ static_url }}user.png" alt=""> Login</a>
+            <a href="/create"><img src="{{ static_url }}studio.png" alt=""> Studio</a>
+        </aside>
+
+        <!-- Conteúdo principal -->
+        <main class="main-content">
+            <header>
+                <img src="/foto_canal/{{ username }}" alt="Foto de perfil de {{ display_name }}">
+                <div class="info">
+                    <h1>{{ display_name }} (@{{ username }})</h1>
+                    <p class="bio">{{ bio or 'Sem descrição ainda.' }}</p>
+                    <div class="stats">{{ subscribers }} inscritos</div>
+                    
+                    {% if not ja_inscrito %}
+                        <form method="POST" action="/inscrever/{{ username }}">
+                            <button type="submit" class="subscribe-btn">Inscrever-se</button>
+                        </form>
+                    {% else %}
+                        <button class="subscribe-btn subscribed" disabled>Já inscrito</button>
+                    {% endif %}
+                </div>
+
+                <!-- Navegação -->
+                <nav style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 16px; width: 100%;">
+                    <a href="/@{{ username }}" class="nav-btn">Vídeos</a>
+                    <a href="/@{{ username }}/posts" class="nav-btn">Posts</a>
+                    {% if session.get('username') and session.get('username') != username %}
+                        <a href="/iniciar_chat/{{ username }}" 
+                           class="nav-btn" 
+                           style="background: #0084ff; color: white;">
+                           💬 Iniciar Conversa
+                        </a>
+                    {% endif %}
+                </nav>
+            </header>
+
+            <section class="videos-section">
+                <h2>Vídeos do canal</h2>
+                {% if channel_videos %}
+                    <div class="video-grid">
+                        {% for video in channel_videos %}
+                            <a href="{{ url_for('player', item_id=video.id) }}" class="video-card">
+                                <video 
+                                    src="{{ static_url }}uploads/{{ video.filename }}" 
+                                    poster="{{ static_url }}uploads/{{ video.thumb or 'default_thumb.jpg' }}"
+                                    muted 
+                                    loop 
+                                    playsinline
+                                    preload="metadata"
+                                    style="width:100%; aspect-ratio:16/9; object-fit:cover;"
+                                ></video>
+                                <div class="video-info">
+                                    <h3>{{ video.title }}</h3>
+                                    <div class="meta">{{ video.views }} visualizações</div>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p style="text-align: center; color: var(--text-secondary); padding: 60px 0;">
+                        Este canal ainda não possui vídeos publicados.
+                    </p>
+                {% endif %}
+            </section>
+        </main>
+    </div>
+</body>
+</html>

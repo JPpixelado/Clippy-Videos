@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ video.title }} — Player interno</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+  :root { color-scheme: dark; }
+  html, body { height: 100%; margin: 0; background: #000; font-family: system-ui, sans-serif; }
+
+  .pv-stage {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden; /* Impede scroll */
+    /* Importante: permite que a div pai aceite cliques mesmo sem cursor, 
+       mas vamos controlar o cursor via classe extra */
+  }
+
+  .pv-video {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: contain; background: #000;
+    cursor: default; /* Garante que o vídeo tenha cursor padrão quando visível */
+  }
+
+  /* --- TELA FINAL (A SEGUIR) --- */
+  .pv-endscreen {
+      position: absolute; inset: 0; background: rgba(0,0,0,0.85);
+      z-index: 20; display: none; flex-direction: column;
+      align-items: center; justify-content: center; color: white; padding: 20px;
+  }
+  
+  .pv-grid { display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; margin-top: 20px; }
+
+  .pv-card {
+      width: 200px; text-decoration: none; color: white;
+      background: #1f1f1f; border-radius: 8px; overflow: hidden;
+      transition: transform 0.2s;
+  }
+  .pv-card:hover { transform: scale(1.05); }
+  .pv-card img { width: 100%; height: 112px; object-fit: cover; }
+  .pv-info { padding: 8px; font-size: 14px; font-weight: bold; }
+  
+  .btn-replay {
+      margin-top: 20px; padding: 10px 20px; background: white; color: black;
+      border: none; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 16px;
+  }
+  .btn-replay:hover { background: #ddd; }
+
+  /* --- UI PADRÃO --- */
+  .pv-ui {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    display: flex; flex-direction: column; gap: 8px; padding: 12px 16px;
+    background: linear-gradient(to top, rgba(0,0,0,.6), rgba(0,0,0,0));
+    color: #fff; z-index: 30;
+    transition: opacity 0.3s ease; /* Transição suave */
+    opacity: 1;
+    pointer-events: auto; /* Aceita cliques normalmente */
+  }
+
+  .pv-scrub {
+    height: 6px; background: linear-gradient(90deg, #1a1a1a, #2a2a2a);
+    border-radius: 999px; position: relative; cursor: pointer;
+    overflow: hidden; transition: height 0.15s ease;
+  }
+  .pv-scrub:hover { height: 10px; }
+  .pv-scrub .fill {
+    position: absolute; left: 0; top: 0; bottom: 0; width: 0%;
+    background: linear-gradient(90deg, #ff2d8d, #ff4fc7, #ff72ec);
+    border-radius: inherit; transition: width 0.12s ease-out;
+    box-shadow: 0 0 12px rgba(255, 80, 150, 0.5);
+  }
+  .pv-scrub .dot {
+    position: absolute; top: 50%; transform: translate(-50%, -50%); left: 0%;
+    width: 12px; height: 12px; background: white; border-radius: 50%;
+    box-shadow: 0 0 8px rgba(255,255,255,0.7); pointer-events: none; opacity: 0;
+    transition: opacity 0.2s ease, transform 0.15s ease;
+  }
+  .pv-scrub:hover .dot { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+  
+  #timeHover {
+    position: absolute; top: -26px; font-size: 12px;
+    background: rgba(0,0,0,0.7); padding: 4px 6px; border-radius: 6px;
+    pointer-events: none; color: #fff; opacity: 0; transition: opacity .1s ease;
+  }
+
+  .pv-controls { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 8px; }
+  
+  .btn {
+    background-color: rgba(255, 255, 255, 0.08); border: none; padding: 10px;
+    border-radius: 12px; cursor: pointer; transition: background 0.2s ease;
+    display: flex; align-items: center; justify-content: center; width: 40px; height: 40px;
+  }
+  .btn:hover { background-color: rgba(255, 255, 255, 0.2); }
+  .btn img { width: 24px; height: 24px; object-fit: contain; }
+
+  .pv-title {
+    position: absolute; top: 8px; left: 12px; font-size: 18px; font-weight: bold;
+    background: rgba(0,0,0,0.5); padding: 6px 12px; border-radius: 8px; color: #fff;
+    opacity: .85; z-index: 10;
+    transition: opacity 0.3s ease;
+  }
+  .pv-time { margin-left: auto; opacity: .9; font-size: 14px; }
+
+  .quality-option { display: block; width: 100%; margin-bottom: 6px; background: #2a2a2a; color: white; font-size: 14px; }
+  .quality-option:hover { background: #444; }
+
+  /* --- CLASSES PARA ESCONDER A INTERFACE (A MÁGICA) --- */
+  
+  /* 1. Esconde APENAS o visual dos botões e DESATIVA o clique neles */
+  .hidden-ui {
+    opacity: 0 !important;
+    pointer-events: none !important; /* O clique "passa" pela UI invisível e pega no vídeo */
+  }
+
+  /* 2. Esconde o ponteiro do mouse no container principal */
+  .hide-cursor {
+    cursor: none !important;
+  }
+
+  /* --- ÍCONES CENTRAIS --- */
+  #centerIcon {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.5); border-radius: 50%; padding: 20px;
+    display: none; align-items: center; justify-content: center;
+    pointer-events: none; z-index: 15;
+  }
+  #volumeDisplay {
+    position: fixed; top: 55%; left: 50%; transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.6); color: white; font-size: 18px; padding: 8px 16px;
+    border-radius: 12px; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; z-index: 999;
+  }
+  .btn-settings-icon { transition: transform 0.35s ease; transform-origin: center; }
+  .menu-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  .menu-item:hover {
+    background: #333;
+  }
+  .menu-item:hover { background: #333; }
+  </style>
+</head>
+<body>
+  <div class="pv-stage" id="pv">
+    <video class="pv-video" id="vid" preload="metadata">
+      <source src="{{ static_url }}uploads/{{ video.filename }}" type="video/mp4">
+    </video>
+
+	<!-- Menu de contexto (clique direito no vídeo) -->
+<div id="contextMenu" style="position: absolute; background: #1f1f1f; color: white; border-radius: 8px; padding: 10px 0; box-shadow: 0 4px 15px rgba(0,0,0,0.6); display: none; z-index: 10000; min-width: 200px; font-family: Arial;">
+<div class="menu-item" onclick="editVideo()" style="padding: 10px 20px; cursor: pointer;">Editar vídeo (título, descrição, thumb, capítulos)</div>
+  <hr style="border: 0; border-top: 1px solid #444; margin: 5px 0;">
+  <div class="menu-item" onclick="copyVideoLink()" style="padding: 10px 20px; cursor: pointer;">Copiar link do vídeo</div>
+  <div class="menu-item" onclick="shareVideo()" style="padding: 10px 20px; cursor: pointer;">Compartilhar</div>
+  <div class="menu-item" onclick="reportVideo()" style="padding: 10px 20px; cursor: pointer;">Reportar vídeo</div>
+</div>
+
+    <div class="pv-title">{{ video.title }}</div>
+
+    <div class="pv-endscreen" id="endScreen">
+        <h3>A seguir</h3>
+        <div class="pv-grid">
+            {% for rel in relacionados[:3] %}
+            <a href="/watch/{{ rel.id }}" class="pv-card">
+                <img src="{{ static_url }}uploads/{{ rel.thumb }}" alt="{{ rel.title }}">
+                <div class="pv-info">
+                    <span class="pv-card-title">{{ rel.title }}</span>
+                </div>
+            </a>
+            {% else %}
+            <p>Nenhum vídeo A seguir.</p>
+            {% endfor %}
+        </div>
+        <button class="btn-replay" onclick="replayVideo()">🔄 Replay</button>
+    </div>
+
+    <div class="pv-ui">
+      <div class="pv-scrub" id="scrub">
+        <div class="fill" id="fill"></div>
+        <div class="dot" id="dot"></div>
+        <div id="timeHover"></div>
+      </div>
+
+      <div class="pv-controls">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <button class="btn" id="btnTogglePlay" title="Play/Pause">
+                <img id="playIcon" src="{{ static_url }}icons/play.png" alt="Play">
+            </button>
+
+            <div style="position: relative;">
+                <button class="btn" id="btnToggleMute" title="Volume">
+                    <img id="volumeIcon" src="{{ static_url }}icons/unmute.png" alt="Volume">
+                </button>
+                <div id="volumeControl" style="display: none; position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%); background: #1f1f1f; padding: 8px; border-radius: 8px; z-index: 100;">
+                    <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1" style="writing-mode: bt-lr; -webkit-appearance: slider-vertical; width: 24px; height: 100px; background: transparent;">
+                </div>
+            </div>
+            <span class="pv-time" id="time">00:00 / 00:00</span>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <button class="btn" id="btnSubtitles" title="Legendas">
+                <img id="subIcon" src="{{ static_url }}icons/cc.png" alt="Legendas">
+            </button>
+            <button class="btn" id="btnCopyEmbed" title="Copiar embed">
+                <img src="{{ static_url }}icons/embed.png" alt="Embed">
+            </button>
+            
+            <div style="position: relative;">
+                <button class="btn" id="btnSettings" title="Qualidade">
+                    <img class="btn-settings-icon" id="settingsIcon" src="{{ static_url }}icons/settings.png" alt="Configurações">
+                </button>
+                <div id="qualityMenu" style="display: none; position: absolute; bottom: 40px; right: 0; background: #1f1f1f; border-radius: 8px; padding: 8px; z-index: 100;">
+                    <button class="btn quality-option" data-src="{{ static_url }}uploads/{{ video.filename }}">Padrão</button>
+                    {% if video.filename_480p %}
+                    <button class="btn quality-option" data-src="{{ static_url }}uploads/{{ video.filename_480p }}">480p</button>
+                    {% endif %}
+					{% if video.filename_360p %}
+                    <button class="btn quality-option" data-src="{{ static_url }}uploads/{{ video.filename_360p }}">360p</button>
+                    {% endif %}
+                    {% if video.filename_144p %}
+                    <button class="btn quality-option" data-src="{{ static_url }}uploads/{{ video.filename_144p }}">144p</button>
+                    {% endif %}
+                </div>
+            </div>
+
+            <button class="btn" id="btnFullscreen" title="Tela cheia">
+                <img src="{{ static_url }}icons/fullscreen.png" alt="Fullscreen">
+            </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="centerIcon"><img id="centerIconImg" src="" style="width: 64px; height: 64px;"></div>
+    <div id="volumeDisplay">Volume: 100%</div>
+  </div>
+
+<!-- Menu de contexto -->
+<div id="contextMenu" style="position: absolute; background: #1f1f1f; color: white; border-radius: 8px; padding: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); display: none; z-index: 9999; min-width: 180px;">
+  <div class="menu-item" onclick="copyLink()">Copiar link do vídeo</div>
+  <div class="menu-item" onclick="shareVideo()">Compartilhar</div>
+  <div class="menu-item" onclick="reportVideo()">Reportar</div>
+  <hr style="border-color: #444; margin: 6px 0;">
+  <div class="menu-item" onclick="toggleQualityMenu()">Qualidade</div>
+  <div class="menu-item" onclick="toggleFullscreen()">Tela cheia</div>
+</div>
+
+  <script>
+    const vid = document.getElementById('vid');
+    const scrub = document.getElementById('scrub');
+    const fill = document.getElementById('fill');
+    const time = document.getElementById('time');
+    const endScreen = document.getElementById('endScreen');
+    const stage = document.querySelector('.pv-stage');
+    const playIcon = document.getElementById('playIcon');
+    const centerIcon = document.getElementById('centerIcon');
+    const centerIconImg = document.getElementById('centerIconImg');
+
+    // --- FORMATAÇÃO DE TEMPO ---
+    function fmt(s) {
+      const m = Math.floor(s / 60).toString().padStart(2,'0');
+      const ss = Math.floor(s % 60).toString().padStart(2,'0');
+      return `${m}:${ss}`;
+    }
+
+    // --- ATUALIZA BARRA DE PROGRESSO ---
+    function updateUI() {
+      const dur = vid.duration || 0;
+      const cur = vid.currentTime || 0;
+      time.textContent = `${fmt(cur)} / ${fmt(dur)}`;
+      const pct = dur ? (cur / dur) * 100 : 0;
+      fill.style.width = pct + '%';
+    }
+
+    vid.addEventListener('timeupdate', updateUI);
+    vid.addEventListener('loadedmetadata', updateUI);
+
+    // --- LÓGICA DE MOSTRAR/ESCONDER UI E MOUSE (O CORAÇÃO DO PROBLEMA) ---
+    let hideTimeout;
+
+    function showUI() {
+        // Remove a classe que esconde o cursor da caixa mãe
+        stage.classList.remove('hide-cursor');
+        
+        // Remove a classe que esconde visualmente a interface
+        document.querySelector('.pv-ui').classList.remove('hidden-ui');
+        document.querySelector('.pv-title').classList.remove('hidden-ui');
+        
+        resetHideTimer();
+    }
+
+    function hideUI() {
+        // Se pausado ou tela final, NÃO esconde nada
+        if (vid.paused || endScreen.style.display === 'flex') return;
+
+        // 1. Esconde o cursor na caixa mãe
+        stage.classList.add('hide-cursor');
+        
+        // 2. Esconde a interface visualmente E desativa cliques nela (pointer-events: none)
+        document.querySelector('.pv-ui').classList.add('hidden-ui');
+        document.querySelector('.pv-title').classList.add('hidden-ui');
+    }
+
+    function resetHideTimer() {
+        clearTimeout(hideTimeout);
+        // Tempo: 1 segundo (1000ms)
+        hideTimeout = setTimeout(hideUI, 1000); 
+    }
+
+    // Movimento do mouse traz tudo de volta
+    document.addEventListener('mousemove', showUI);
+    document.addEventListener('touchstart', showUI);
+    document.addEventListener('click', showUI); // Qualquer clique também acorda a interface
+    
+    // Inicia o timer
+    resetHideTimer();
+
+    // --- PLAY / PAUSE COM ANIMAÇÃO ---
+    function togglePlay() {
+        if (vid.paused) {
+            vid.play();
+            endScreen.style.display = 'none';
+            animarIconeCentral('play');
+        } else {
+            vid.pause();
+            animarIconeCentral('pause');
+            showUI(); // Garante que a UI fique visível ao pausar
+        }
+    }
+
+    // Clique no botão
+    document.getElementById('btnTogglePlay').onclick = togglePlay;
+
+    // Clique no vídeo (fundo)
+    vid.addEventListener('click', () => {
+        togglePlay();
+    });
+
+    // Atualiza ícone do botão inferior
+    vid.addEventListener('play', () => { playIcon.src = "{{ static_url }}icons/pause.png"; });
+    vid.addEventListener('pause', () => { playIcon.src = "{{ static_url }}icons/play.png"; });
+
+
+    // --- ÍCONE CENTRAL ANIMADO ---
+    function animarIconeCentral(tipo) {
+        let iconPath = "";
+        switch(tipo) {
+            case 'play': iconPath = "{{ static_url }}icons/play.png"; break;
+            case 'pause': iconPath = "{{ static_url }}icons/pause.png"; break;
+            case 'unmute': iconPath = "{{ static_url }}icons/unmute.png"; break;
+            case 'mute': iconPath = "{{ static_url }}icons/mute.png"; break;
+        }
+
+        if (iconPath) {
+            centerIconImg.src = iconPath;
+            centerIcon.style.display = 'flex';
+            
+            // Truque para reiniciar animação CSS se houvesse
+            void centerIcon.offsetWidth; 
+            
+            // Some após 600ms
+            setTimeout(() => {
+                centerIcon.style.display = 'none';
+            }, 600);
+        }
+    }
+
+    // --- TELA FINAL ---
+    vid.addEventListener('ended', () => {
+        endScreen.style.display = 'flex';
+        showUI(); // Mostra o mouse para clicar no replay
+    });
+
+    window.replayVideo = function() { // Global para o onclick do HTML funcionar
+        endScreen.style.display = 'none';
+        vid.currentTime = 0;
+        vid.play();
+    }
+
+    // --- BARRA DE PROGRESSO (SCRUB) ---
+    scrub.addEventListener('mousedown', () => endScreen.style.display = 'none');
+    scrub.addEventListener('click', (e) => {
+      const rect = scrub.getBoundingClientRect();
+      const pct = (e.clientX - rect.left) / rect.width;
+      if (vid.duration) {
+          vid.currentTime = pct * vid.duration;
+          endScreen.style.display = 'none';
+      }
+    });
+
+    // --- FULLSCREEN ---
+    document.getElementById('btnFullscreen').onclick = () => {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    };
+
+    // --- VOLUME ---
+    const volumeSlider = document.getElementById('volumeSlider');
+    const btnToggleMute = document.getElementById('btnToggleMute');
+    const volumeIcon = document.getElementById('volumeIcon');
+    const volumeControl = document.getElementById('volumeControl');
+
+    btnToggleMute.addEventListener('mouseenter', () => volumeControl.style.display = 'block');
+    btnToggleMute.addEventListener('mouseleave', () => setTimeout(() => { if(!volumeControl.matches(':hover')) volumeControl.style.display='none'; }, 300));
+    volumeControl.addEventListener('mouseleave', () => volumeControl.style.display = 'none');
+
+    volumeSlider.addEventListener('input', () => {
+        vid.volume = parseFloat(volumeSlider.value);
+        vid.muted = vid.volume === 0;
+        volumeIcon.src = vid.muted ? "{{ static_url }}icons/mute.png" : "{{ static_url }}icons/unmute.png";
+    });
+    
+    // Botão Mute alterna entre 0 e 1 (ou atual)
+    btnToggleMute.onclick = () => {
+        vid.muted = !vid.muted;
+        volumeIcon.src = vid.muted ? "{{ static_url }}icons/mute.png" : "{{ static_url }}icons/unmute.png";
+        animarIconeCentral(vid.muted ? 'mute' : 'unmute');
+    }
+
+    // --- TECLAS ---
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      showUI();
+      switch (e.key.toLowerCase()) {
+        case ' ': case 'k': e.preventDefault(); togglePlay(); break;
+        case 'm': btnToggleMute.click(); break;
+        case 'f': document.getElementById('btnFullscreen').click(); break;
+        case 'arrowright': vid.currentTime += 5; break;
+        case 'arrowleft': vid.currentTime -= 5; break;
+      }
+    });
+
+    // --- MENU DE QUALIDADE E EMBED ---
+    document.getElementById('btnSettings').onclick = () => {
+        const menu = document.getElementById('qualityMenu');
+        menu.style.display = (menu.style.display === 'none') ? 'block' : 'none';
+    };
+    
+    // Fecha menus se clicar fora
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('#btnSettings') && !e.target.closest('#qualityMenu')) {
+            document.getElementById('qualityMenu').style.display = 'none';
+        }
+    });
+
+    document.querySelectorAll('.quality-option').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const curTime = vid.currentTime;
+            const playing = !vid.paused;
+            vid.src = btn.getAttribute('data-src');
+            vid.currentTime = curTime;
+            if(playing) vid.play();
+            document.getElementById('qualityMenu').style.display = 'none';
+        });
+    });
+
+    document.getElementById('btnCopyEmbed').onclick = () => {
+      const code = `<iframe src="https://192.168.0.150:7070/embed/{{ video.id }}" width="560" height="315" frameborder="0" allowfullscreen></iframe>`;
+      navigator.clipboard.writeText(code);
+      alert("Código copiado!");
+    };
+	// Menu de contexto (clique direito no player)
+const contextMenu = document.getElementById('contextMenu');
+const pvStage = document.getElementById('pv');
+
+pvStage.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  contextMenu.style.display = 'block';
+  contextMenu.style.left = `${e.pageX}px`;
+  contextMenu.style.top = `${e.pageY}px`;
+});
+
+// Fecha o menu ao clicar fora
+document.addEventListener('click', (e) => {
+  if (!contextMenu.contains(e.target)) {
+    contextMenu.style.display = 'none';
+  }
+});
+
+// Funções do menu
+function editVideo() {
+  // Redireciona para a página de edição do vídeo
+  window.location.href = `/editar-video/{{ video.id }}`;
+  contextMenu.style.display = 'none';
+}
+
+function copyVideoLink() {
+  navigator.clipboard.writeText(window.location.href);
+  alert("Link do vídeo copiado!");
+  contextMenu.style.display = 'none';
+}
+
+function shareVideo() {
+  if (navigator.share) {
+    navigator.share({
+      title: '{{ video.title }}',
+      text: 'Confira esse vídeo no Clippy!',
+      url: window.location.src
+    });
+  } else {
+    alert("Compartilhamento não suportado. Copie o link manualmente.");
+  }
+  contextMenu.style.display = 'none';
+}
+
+function reportVideo() {
+  alert("Para reportar, envie um e-mail para suporte@clippy.local com o link do vídeo e o motivo.");
+  contextMenu.style.display = 'none';
+}
+  </script>
+</body>
+</html>

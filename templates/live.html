@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Iniciar live | Clippy Videos</title>
+  <style>
+    video { width: 100%; max-width: 720px; border-radius: 12px; background:#000; }
+    .bar { display:flex; gap:12px; margin-top:12px; }
+    input, button { padding:10px; border-radius:8px; border:1px solid #ccc; }
+    button { cursor:pointer; background:#4285f4; color:#fff; border:none; }
+  </style>
+</head>
+<body>
+  <h1>🎥 Iniciar live</h1>
+  <video id="preview" autoplay playsinline muted></video>
+  <div class="bar">
+    <input id="title" placeholder="Título da live">
+    <button id="startBtn">Iniciar transmissão</button>
+    <button id="stopBtn" disabled>Encerrar</button>
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+  const socket = io({ transports: ['websocket'] });
+  let pc, stream, liveId;
+
+  async function startLive() {
+    stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    document.getElementById('preview').srcObject = stream;
+
+    // cria live com senha
+    const title = document.getElementById('title').value || 'Live sem título';
+    const password = prompt('Digite a senha do canal:') || '';
+    const res = await fetch('/api/live/create', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ title, password })
+    });
+    const data = await res.json();
+    if (!data.id) { alert('Falha ao criar live'); return; }
+    liveId = data.id;
+
+    pc = new RTCPeerConnection();
+    stream.getTracks().forEach(t => pc.addTrack(t, stream));
+
+    socket.emit('join', { liveId, role: 'publisher' });
+
+    pc.onicecandidate = (e) => {
+      if (e.candidate) socket.emit('candidate', { liveId, candidate: e.candidate });
+    };
+
+    // Publisher recebe offer dos viewers, cria answer e envia
+    socket.on('offer', async (payload) => {
+      if (payload.liveId !== liveId) return;
+      try {
+        await pc.setRemoteDescription({ type:'offer', sdp: payload.sdp });
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        socket.emit('answer', { liveId, sdp: answer.sdp });
+      } catch (err) { console.error(err); }
+    });
+
+    socket.on('candidate', async (payload) => {
+      if (payload.liveId !== liveId) return;
+      try { await pc.addIceCandidate(payload.candidate); } catch {}
+    });
+
+    alert(`Live iniciada! ID: ${liveId}\nLink: /lives/${liveId}`);
+    document.getElementById('startBtn').disabled = true;
+    document.getElementById('stopBtn').disabled = false;
+  }
+
+  async function stopLive() {
+    pc?.close();
+    stream?.getTracks()?.forEach(t => t.stop());
+    socket.emit('leave', { liveId, role: 'publisher' });
+    await fetch('/api/live/stop', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ id: liveId })
+    });
+    document.getElementById('startBtn').disabled = false;
+    document.getElementById('stopBtn').disabled = true;
+    alert('Live encerrada.');
+  }
+
+  document.getElementById('startBtn').addEventListener('click', startLive);
+  document.getElementById('stopBtn').addEventListener('click', stopLive);
+</script>
+</body>
+</html>

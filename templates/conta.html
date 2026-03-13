@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Minha Conta - Clippy</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { color: #e50914; text-align: center; }
+        .section { margin: 30px 0; padding: 20px; background: #fafafa; border-radius: 8px; }
+        .info { margin: 10px 0; font-size: 16px; }
+        .info strong { color: #333; }
+        .btn { display: inline-block; padding: 12px 24px; background: #e50914; color: white; text-decoration: none; border-radius: 6px; margin: 10px 5px; }
+        .btn:hover { background: #b0060f; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Minha Conta</h1>
+        
+        <div class="section">
+            <h2>Informações Básicas</h2>
+            <div class="info"><strong>Usuário:</strong> @{{ username }}</div>
+            {% if channel %}
+                <div class="info"><strong>Canal:</strong> {{ channel.display_name }} ({{ channel.bio|truncate(100) }})</div>
+            {% else %}
+                <div class="info"><strong>Canal:</strong> Você ainda não tem um canal criado.</div>
+            {% endif %}
+        </div>
+        
+        <div class="section">
+            <h2>Configurações</h2>
+            <div class="info"><strong>Cor de fundo:</strong> {{ configs.cor_fundo or 'Padrão' }}</div>
+            <div class="info"><strong>Idade informada:</strong> {{ configs.idade or '18+' }}</div>
+            <div class="info"><strong>Tema:</strong> {{ configs.tema or 'Claro' }}</div>
+            <a href="/configs" class="btn">Editar Configurações</a>
+        </div>
+        
+        <div class="section">
+            <h2>Studio (Criação de Conteúdo)</h2>
+            {% if studio_link %}
+                <div class="info">Acesse seu Studio aqui:</div>
+                <a href="{{ studio_link }}" class="btn" target="_blank">Abrir Studio</a>
+            {% else %}
+                <div class="info">Crie seu canal no Studio para começar a enviar vídeos.</div>
+                <a href="http://192.168.0.150:7072/create" class="btn" target="_blank">Criar Canal</a>
+            {% endif %}
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="/logout" class="btn" style="background: #dc3545;">Sair da Conta</a>
+        </div>
+    </div>
+</body>
+</html>

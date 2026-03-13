@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Criar Canal | ClipEngine</title>
+    <style>
+        body { font-family: Arial; background: #f0f0f0; padding: 40px; }
+        form { background: white; padding: 20px; border-radius: 8px; max-width: 400px; margin: auto; }
+        input, textarea, button { width: 100%; margin-bottom: 15px; padding: 10px; font-size: 16px; }
+        button { background-color: #e50914; color: white; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Criar seu canal no Play Studio</h1>
+    <form method="POST" action="/create" enctype="multipart/form-data">
+    <input type="text" name="username" placeholder="Seu @ (sem o @)" required>
+    <input type="text" name="display_name" placeholder="Nome do canal" required>
+    <textarea name="bio" placeholder="Descrição do canal" rows="4" required></textarea>
+
+    <input type="password" name="password" placeholder="Senha do canal (padrão: admin)">
+    
+    <input type="file" name="foto" accept="image/*" onchange="previewFoto(event)">
+    <img id="preview" src="#" alt="Prévia da foto" style="display:none; width:100%; border-radius:8px; margin-bottom:15px;">
+
+    <button type="submit">Criar Canal</button>
+</form>
+
+<script>
+function previewFoto(event) {
+  const img = document.getElementById('preview');
+  img.src = URL.createObjectURL(event.target.files[0]);
+  img.style.display = 'block';
+}
+</script>
+</body>
+</html>

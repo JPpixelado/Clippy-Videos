@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Gerenciar Posts de @{{ username }}</title>
+  <style>
+    body { font-family: sans-serif; background: #f4f4f4; padding: 20px; 
+	background-color: {{ user_settings.cor_fundo }} !important;
+	}
+    .post { background: white; padding: 15px; margin-bottom: 15px; border-radius: 8px; }
+    form { margin-top: 10px; }
+    input, textarea, button { display: block; margin-bottom: 10px; padding: 8px; width: 100%; }
+    button { background: #e50914; color: white; border: none; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Gerenciar Posts de @{{ username }}</h1>
+
+  <h2>Criar novo post</h2>
+  <form method="POST">
+    <input type="hidden" name="action" value="create">
+    <input type="text" name="title" placeholder="Título" required>
+    <textarea name="content" placeholder="Conteúdo" required></textarea>
+    <button type="submit">Criar Post</button>
+  </form>
+
+  <h2>Posts existentes</h2>
+  {% for post in posts %}
+  <div class="post">
+    <h3>{{ post.title }}</h3>
+    <p>{{ post.content }}</p>
+    <small>{{ post.date }}</small>
+    <form method="POST">
+      <input type="hidden" name="action" value="delete">
+      <input type="hidden" name="post_id" value="{{ post.id }}">
+      <button type="submit">Apagar</button>
+    </form>
+  </div>
+  {% else %}
+  <p>Nenhum post criado ainda.</p>
+  {% endfor %}
+</body>
+</html>

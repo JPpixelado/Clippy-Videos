@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+<head>
+<meta charset="UTF-8">
+<title>{{ nome }} | Playlist</title>
+<style>
+    body { font-family: Arial; background: #f0f0f0; margin: 0; padding: 20px; }
+    h1 { color: #e50914; }
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+    }
+    .video-card {
+        background: white;
+        padding: 10px;
+        border-radius: 8px;
+        box-shadow: 0 0 5px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+    .video-card video {
+        width: 100%;
+        border-radius: 4px;
+    }
+    .video-card h3 {
+        margin: 10px 0 5px;
+        color: #333;
+    }
+    .video-card p {
+        font-size: 14px;
+        color: #666;
+    }
+</style>
+</head>
+<body>
+    <a href="{{ url_for('index') }}">Voltar</a>
+    <h1>{{ nome }}</h1>
+    <p>{{ descricao }}</p>
+
+    <div class="grid">
+        {% for video in videos %}
+        <div class="video-card">
+            <a href="{{ url_for('player', item_id=video.id) }}">
+                <video muted>
+                    <source src="{{ url_for('static', filename='uploads/' ~ video.filename) }}" type="video/mp4">
+                </video>
+                <h3>{{ video.title }}</h3>
+            </a>
+            <p>{{ video.views }} views</p>
+        </div>
+        {% else %}
+        <p>Esta playlist ainda não tem vídeos.</p>
+        {% endfor %}
+    </div>
+</body>
+</html>

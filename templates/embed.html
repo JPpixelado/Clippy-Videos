@@ -1,0 +1,540 @@
+      <!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ video.title }} — Player interno</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+  :root { color-scheme: dark; }
+  html, body { height: 100%; margin: 0; background: #000; }
+
+  .pv-stage {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+
+  .pv-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #000;
+  }
+
+  .pv-ui {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 16px;
+    background: linear-gradient(to top, rgba(0,0,0,.6), rgba(0,0,0,0));
+    color: #fff;
+    font-family: system-ui, sans-serif;
+    z-index: 10;
+  }
+
+  .pv-scrub {
+    height: 6px;
+    background: #333;
+    border-radius: 999px;
+    position: relative;
+    cursor: pointer;
+  }
+
+  .pv-scrub > .fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 0%;
+    background: #e91e63;
+    border-radius: 999px;
+  }
+  .pv-controls {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+  .btn {
+    background-color: rgba(255, 255, 255, 0.08);
+    border: none;
+    padding: 10px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+  }
+
+  .btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .btn img {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+  }
+
+  .pv-title {
+    position: absolute;
+    top: 8px;
+    left: 12px;
+    font-size: 18px;
+    font-weight: bold;
+    background: rgba(0,0,0,0.5);
+    padding: 6px 12px;
+    border-radius: 8px;
+    color: #fff;
+    opacity: .85;
+    z-index: 10;
+  }
+
+  .pv-time {
+    margin-left: auto;
+    opacity: .9;
+    font-size: 14px;
+  }
+
+  .quality-option {
+    display: block;
+    width: 100%;
+    margin-bottom: 6px;
+    background: #2a2a2a;
+    color: white;
+    font-size: 14px;
+  }
+
+  .quality-option:hover {
+    background: #444;
+  }
+
+  .hidden-ui {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+
+  #centerIcon {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 999;
+  }
+
+  #volumeDisplay {
+    position: fixed;
+    top: 55%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.6);
+    color: white;
+    font-size: 18px;
+    padding: 8px 16px;
+    border-radius: 12px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 999;
+    font-family: system-ui, sans-serif;
+  }
+</style>
+</head>
+<body>
+  <div class="pv-stage" id="pv">
+    <video class="pv-video" id="vid" preload="metadata">
+      <source src="{{ url_for('static', filename='uploads/' + video.filename) }}" type="video/mp4">
+    </video>
+
+    <!-- Título/top bar opcional -->
+    <div class="pv-title" style="position:absolute; top:8px; left:12px; color:#fff; opacity:.85;">
+      {{ video.title }}
+    </div>
+
+<div class="pv-ui">
+  <!-- Timeline primeiro -->
+  <div class="pv-scrub" id="scrub">
+    <div class="fill" id="fill"></div>
+  </div>
+
+  <!-- Botões abaixo -->
+   <div class="pv-controls">
+<button class="btn" id="btnTogglePlay" title="Play/Pause">
+  <img id="playIcon" src="{{ url_for('static', filename='icons/play.png') }}" alt="Play">
+</button>
+
+<div style="position: relative;">
+  <button class="btn" id="btnToggleMute" title="Volume">
+    <img id="volumeIcon" src="{{ url_for('static', filename='icons/unmute.png') }}" alt="Volume">
+  </button>
+
+  <div id="volumeControl" style="
+    display: none;
+    position: absolute;
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1f1f1f;
+    padding: 8px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    z-index: 100;
+  ">
+    <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1" style="
+      writing-mode: bt-lr;
+      -webkit-appearance: slider-vertical;
+      width: 24px;
+      height: 100px;
+      background: transparent;
+    ">
+  </div>
+</div>
+
+  <button class="btn" id="btnFullscreen" title="Tela cheia">
+    <img src="{{ url_for('static', filename='icons/fullscreen.png') }}" alt="Fullscreen">
+  </button>
+
+  <div style="position:relative;">
+  <button class="btn" id="btnSettings" title="Qualidade">
+    <img src="{{ url_for('static', filename='icons/settings.png') }}" alt="Configurações">
+  </button>
+
+  <div id="qualityMenu" style="
+    display:none;
+    position:absolute;
+    bottom:40px;
+    right:0;
+    background:#1f1f1f;
+    border-radius:8px;
+    padding:8px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.3);
+    z-index:100;
+  ">
+    <button class="btn quality-option" data-src="{{ url_for('static', filename='uploads/' + video.filename) }}">Padrão</button>
+
+{% if video.filename_480p %}
+  <button class="btn quality-option" data-src="{{ url_for('static', filename='uploads/' + video.filename_480p) }}">480p</button>
+{% endif %}
+
+{% if video.filename_144p %}
+  <button class="btn quality-option" data-src="{{ url_for('static', filename='uploads/' + video.filename_144p) }}">144p</button>
+{% endif %}
+
+
+  </div>
+</div>
+
+  <span class="pv-time" id="time">00:00 / 00:00</span>
+</div>
+
+<!-- Ícones centrais -->
+<div id="centerIcon">
+  <img id="centerIconImg" src="" alt="Ícone" style="width: 64px; height: 64px;">
+</div>
+
+<div id="volumeDisplay" style="
+  position: fixed;
+  top: 55%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0,0,0,0.6);
+  color: white;
+  font-size: 18px;
+  padding: 8px 16px;
+  border-radius: 12px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  z-index: 999;
+  font-family: system-ui, sans-serif;
+">
+  Volume: 100%
+</div>
+
+  <script>
+    const vid = document.getElementById('vid');
+    const scrub = document.getElementById('scrub');
+    const fill = document.getElementById('fill');
+    const time = document.getElementById('time');
+
+    function fmt(s) {
+      const m = Math.floor(s / 60).toString().padStart(2,'0');
+      const ss = Math.floor(s % 60).toString().padStart(2,'0');
+      return `${m}:${ss}`;
+    }
+
+    function updateUI() {
+      const dur = vid.duration || 0;
+      const cur = vid.currentTime || 0;
+      time.textContent = `${fmt(cur)} / ${fmt(dur)}`;
+      const pct = dur ? (cur / dur) * 100 : 0;
+      fill.style.width = pct + '%';
+      // Post message para o parent (analytics, progresso, etc.)
+      window.parent.postMessage({ type: 'video:progress', currentTime: cur, duration: dur }, window.origin);
+    }
+
+    scrub.addEventListener('click', (e) => {
+      const rect = scrub.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const pct = x / rect.width;
+      if (vid.duration) vid.currentTime = pct * vid.duration;
+    });
+
+    vid.addEventListener('timeupdate', updateUI);
+    vid.addEventListener('loadedmetadata', updateUI);
+    vid.addEventListener('play', updateUI);
+    vid.addEventListener('pause', updateUI);
+
+    // Autoplay suave: tenta tocar ao focar/ao clicar
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && vid.paused) { /* opcional: vid.play(); */ }
+    });
+
+    // Iniciar UI
+    updateUI();
+    let hideTimeout;
+
+function showUI() {
+  document.querySelector('.pv-ui').classList.remove('hidden-ui');
+  document.querySelector('.pv-title').classList.remove('hidden-ui');
+  resetHideTimer();
+}
+
+function hideUI() {
+  document.querySelector('.pv-ui').classList.add('hidden-ui');
+  document.querySelector('.pv-title').classList.add('hidden-ui');
+}
+
+function resetHideTimer() {
+  clearTimeout(hideTimeout);
+  hideTimeout = setTimeout(hideUI, 5000); // 5 segundos sem mexer
+}
+
+// Detecta movimento do mouse ou toque
+document.addEventListener('mousemove', showUI);
+document.addEventListener('touchstart', showUI);
+
+// Inicia o timer
+resetHideTimer();
+
+const btnFullscreen = document.getElementById('btnFullscreen');
+
+btnFullscreen.onclick = () => {
+  const el = document.documentElement;
+  if (!document.fullscreenElement) {
+    el.requestFullscreen().catch(err => console.warn('Erro ao entrar em fullscreen:', err));
+  } else {
+    document.exitFullscreen();
+  }
+};
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+showUI(); // Mostra a UI sempre que uma tecla é pressionada
+
+  switch (e.key.toLowerCase()) {
+    case ' ':
+case 'k':
+  e.preventDefault();
+  if (vid.paused) {
+    vid.play();
+    showCenterIcon("{{ url_for('static', filename='icons/play.png') }}");
+  } else {
+    vid.pause();
+    showCenterIcon("{{ url_for('static', filename='icons/pause.png') }}");
+  }
+  break;
+    case 'm':
+      vid.muted = !vid.muted;
+      break;
+    case 'f':
+      btnFullscreen.click();
+      break;
+    case 'arrowright':
+      vid.currentTime += 5;
+      break;
+    case 'arrowleft':
+      vid.currentTime -= 5;
+      break;
+    case 'arrowup':
+      vid.volume = Math.min(vid.volume + 0.1, 1);
+      break;
+    case 'arrowdown':
+      vid.volume = Math.max(vid.volume - 0.1, 0);
+      break;
+  }
+});
+document.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  // Exibe um menu fake ou ignora totalmente
+  alert('Menu desativado para proteger o conteúdo.');
+});
+const btnSettings = document.getElementById('btnSettings');
+const qualityMenu = document.getElementById('qualityMenu');
+
+btnSettings.onclick = () => {
+  qualityMenu.style.display = (qualityMenu.style.display === 'none' || qualityMenu.style.display === '') ? 'block' : 'none';
+};
+
+document.querySelectorAll('.quality-option').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const newSrc = btn.getAttribute('data-src');
+    const currentTime = vid.currentTime;
+    const isPlaying = !vid.paused;
+
+    vid.src = newSrc;
+    vid.load();
+    vid.currentTime = currentTime;
+    if (isPlaying) vid.play();
+
+    qualityMenu.style.display = 'none';
+  });
+});
+const centerIcon = document.getElementById('centerIcon');
+const centerIconImg = document.getElementById('centerIconImg');
+
+function showCenterIcon(src) {
+  centerIconImg.src = src;
+  centerIcon.style.opacity = 1;
+  clearTimeout(centerIcon._hideTimer);
+  centerIcon._hideTimer = setTimeout(() => {
+    centerIcon.style.opacity = 0;
+  }, 1000); // ícone visível por 1s
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+  switch (e.key.toLowerCase()) {
+    case 'arrowup':
+  vid.volume = Math.min(vid.volume + 0.1, 1);
+  showCenterIcon("{{ url_for('static', filename='icons/unmute.png') }}");
+  showVolumeDisplay(vid.volume);
+  break;
+
+case 'arrowdown':
+  vid.volume = Math.max(vid.volume - 0.1, 0);
+  showCenterIcon("{{ url_for('static', filename='icons/unsound.png') }}");
+  showVolumeDisplay(vid.volume);
+  break;
+    // os outros já estão definidos
+  }
+});
+document.querySelectorAll('.btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    btn.style.transform = 'scale(0.95)';
+    setTimeout(() => {
+      btn.style.transform = 'scale(1)';
+    }, 100);
+  });
+});
+const btnTogglePlay = document.getElementById('btnTogglePlay');
+const playIcon = document.getElementById('playIcon');
+
+btnTogglePlay.onclick = () => {
+  if (vid.paused) {
+    vid.play();
+    playIcon.src = "{{ url_for('static', filename='icons/pause.png') }}";
+  } else {
+    vid.pause();
+    playIcon.src = "{{ url_for('static', filename='icons/play.png') }}";
+  }
+};
+
+// Atualiza ícone automaticamente ao mudar estado
+vid.addEventListener('play', () => {
+  playIcon.src = "{{ url_for('static', filename='icons/pause.png') }}";
+});
+
+vid.addEventListener('pause', () => {
+  playIcon.src = "{{ url_for('static', filename='icons/play.png') }}";
+});
+const volumeIcon = document.getElementById('volumeIcon');
+
+// Atualiza ícone se o mute mudar por outro meio
+vid.addEventListener('volumechange', () => {
+  volumeIcon.src = vid.muted
+    ? "{{ url_for('static', filename='icons/mute.png') }}"
+    : "{{ url_for('static', filename='icons/unmute.png') }}";
+});
+const volumeDisplay = document.getElementById('volumeDisplay');
+
+function showVolumeDisplay(vol) {
+  const pct = Math.round(vol * 100);
+  volumeDisplay.textContent = `Volume: ${pct}%`;
+  volumeDisplay.style.opacity = 1;
+  clearTimeout(volumeDisplay._hideTimer);
+  volumeDisplay._hideTimer = setTimeout(() => {
+    volumeDisplay.style.opacity = 0;
+  }, 1000);
+}
+let lastUpdate = Date.now();
+let lowGifShown = false;
+
+vid.addEventListener('timeupdate', () => {
+  lastUpdate = Date.now();
+  if (lowGifShown) {
+    document.getElementById('centerIconImg').src = "";
+    centerIcon.style.opacity = 0;
+    lowGifShown = false;
+  }
+});
+
+setInterval(() => {
+  const now = Date.now();
+  const delta = now - lastUpdate;
+
+  if (delta > 5000 && !vid.paused && !lowGifShown) { // 5 segundos sem atualização
+    showCenterIcon("{{ url_for('static', filename='icons/low.gif') }}");
+    lowGifShown = true;
+  }
+}, 15000);
+const volumeControl = document.getElementById('volumeControl');
+const btnToggleMute = document.getElementById('btnToggleMute');
+const volumeSlider = document.getElementById('volumeSlider');
+
+// Mostrar ao passar o mouse
+btnToggleMute.addEventListener('mouseenter', () => {
+  volumeControl.style.display = 'block';
+});
+
+// Ocultar ao sair do botão ou do controle
+btnToggleMute.addEventListener('mouseleave', () => {
+  setTimeout(() => {
+    if (!volumeControl.matches(':hover')) {
+      volumeControl.style.display = 'none';
+    }
+  }, 300);
+});
+
+volumeControl.addEventListener('mouseleave', () => {
+  volumeControl.style.display = 'none';
+});
+volumeSlider.addEventListener('input', () => {
+  vid.volume = parseFloat(volumeSlider.value);
+  vid.muted = vid.volume === 0;
+  updateVolumeIcon();
+  showVolumeDisplay(vid.volume);
+});
+function updateVolumeIcon() {
+  volumeIcon.src = vid.muted || vid.volume === 0
+    ? "{{ url_for('static', filename='icons/mute.png') }}"
+    : "{{ url_for('static', filename='icons/unmute.png') }}";
+}
+  </script>
+</body>
+</html>

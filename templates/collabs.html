@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Gerenciar Colabs | Clippy Studio</title>
+    <style>
+        body { font-family: 'Roboto', sans-serif; background: #f9f9f9; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #202020; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        h2 { color: #555; margin-top: 30px; font-size: 18px; }
+        
+        .list-group { list-style: none; padding: 0; }
+        .list-item { 
+            display: flex; justify-content: space-between; align-items: center; 
+            background: #fff; border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 8px;
+        }
+        .info strong { display: block; font-size: 16px; color: #333; }
+        .info small { color: #777; }
+        .badge { 
+            background: #e91e63; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-left: 5px;
+        }
+
+        .actions form { display: inline; }
+        button { cursor: pointer; padding: 8px 12px; border: none; border-radius: 4px; font-weight: bold; }
+        .btn-accept { background: #34a853; color: white; }
+        .btn-reject { background: #ea4335; color: white; }
+        .btn-remove { background: #666; color: white; }
+        .btn-back { display: inline-block; margin-bottom: 20px; text-decoration: none; color: #4285f4; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <a href="/studio/{{ username }}" class="btn-back">← Voltar para o Studio</a>
+    <h1>Gerenciar Colaborações</h1>
+
+    <h2>🔔 Pedidos Pendentes</h2>
+    {% if pedidos %}
+        <ul class="list-group">
+            {% for c in pedidos %}
+            <li class="list-item" style="border-left: 5px solid #e91e63;">
+                <div class="info">
+                    <strong>{{ c.name }}</strong> quer colaborar no vídeo:
+                    <br>🎥 <em>{{ c.video_title }}</em>
+                    <br><small>Função: {{ c.role }}</small>
+                </div>
+                <div class="actions">
+                    <form action="/api/collab/gerenciar" method="POST">
+                        <input type="hidden" name="collab_id" value="{{ c.id }}">
+                        <button type="submit" name="action" value="aceitar" class="btn-accept">Aceitar</button>
+                        <button type="submit" name="action" value="rejeitar" class="btn-reject">Recusar</button>
+                    </form>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p style="color:#999;">Nenhum pedido pendente.</p>
+    {% endif %}
+
+    <h2>✅ Colaboradores Ativos</h2>
+    {% if ativos %}
+        <ul class="list-group">
+            {% for c in ativos %}
+            <li class="list-item" style="border-left: 5px solid #34a853;">
+                <div class="info">
+                    <strong>{{ c.name }}</strong>
+                    <span class="badge">{{ c.role }}</span>
+                    <br>🎥 Vídeo: <em>{{ c.video_title }}</em>
+                </div>
+                <div class="actions">
+                    <form action="/api/collab/gerenciar" method="POST" onsubmit="return confirm('Remover este colaborador?');">
+                        <input type="hidden" name="collab_id" value="{{ c.id }}">
+                        <button type="submit" name="action" value="remover" class="btn-remove">Remover</button>
+                    </form>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p style="color:#999;">Você ainda não tem colaboradores ativos.</p>
+    {% endif %}
+</div>
+
+</body>
+</html>

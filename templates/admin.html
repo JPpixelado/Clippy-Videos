@@ -1,0 +1,101 @@
+<title>painel de Moderação</title>
+<style>
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+  }
+
+  h1, h2 {
+    color: #222;
+    margin-bottom: 20px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  }
+
+  th, td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #ddd;
+    text-align: left;
+    vertical-align: middle;
+  }
+
+  th {
+    background-color: #eaeaea;
+    font-weight: bold;
+  }
+
+  tr:hover {
+    background-color: #f9f9f9;
+  }
+
+  video {
+    border-radius: 8px;
+    box-shadow: 0 0 5px rgba(0,0,0,0.2);
+  }
+
+  a {
+    text-decoration: none;
+    color: #0077cc;
+    font-weight: bold;
+  }
+
+  a:hover {
+    color: #005fa3;
+  }
+
+  select {
+    padding: 8px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+  }
+
+  button {
+    padding: 8px 12px;
+    background-color: #0077cc;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  button:hover {
+    background-color: #005fa3;
+  }
+</style>
+<h1>Painel de Moderação</h1>
+<a href="/admin/bloqueados">revisar videos bloqueados</a>
+<table>
+  <tr>
+    <th>Thumb</th><th>Título</th><th>Canal</th><th>Status</th><th>Ações</th>
+  </tr>
+  {% for video in videos %}
+  <tr>
+    <td>
+      {% if video.thumb %}
+        <img src="{{ url_for('static', filename='uploads/' ~ video.thumb) }}" width="120">
+      {% else %}
+        <video src="{{ url_for('static', filename='uploads/' ~ video.filename) }}" width="120" muted></video>
+      {% endif %}
+    </td>
+    <td>{{ video.title }}</td>
+    <td>{{ video.channel }}</td>
+    <td>{{ video.status }}</td>
+    <td>
+      <a href="{{ url_for('permitir_video', video_id=video.id) }}">✅ Permitir</a><br>
+      <a href="{{ url_for('bloquear_video', video_id=video.id) }}">🚫 Bloquear</a>
+    </td>
+    <td>
+  <video src="{{ url_for('static', filename='uploads/' ~ video.filename) }}" width="200" controls muted></video>
+</td>
+  </tr>
+  {% endfor %}
+</table>

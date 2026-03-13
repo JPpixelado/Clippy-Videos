@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Pesquisar - Clippy</title>
+  <style>
+    :root {
+      --primary: #ff2d8d;
+      --bg: {{ user_settings.cor_fundo or '#0f0f0f' }};
+      --surface: #1f1f1f;
+      --text: #ffffff;
+      --text-dim: #aaa;
+    }
+
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font-family: -apple-system, system-ui, sans-serif;
+    }
+
+    /* --- CABEÇALHO DE BUSCA --- */
+    .search-header {
+      position: sticky; top: 0; z-index: 1000;
+      background: var(--bg); padding: 10px 15px;
+      display: flex; align-items: center; gap: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .back-btn { background: none; border: none; color: white; font-size: 24px; padding: 0; }
+
+    .search-input-wrapper {
+      flex: 1; position: relative;
+      background: var(--surface); border-radius: 20px;
+      display: flex; align-items: center; padding: 0 12px;
+    }
+
+    .search-input-wrapper input {
+      flex: 1; background: none; border: none; color: white;
+      height: 40px; font-size: 16px; outline: none;
+    }
+
+    /* --- FILTROS RÁPIDOS --- */
+    .filters-scroll {
+      display: flex; gap: 10px; overflow-x: auto;
+      padding: 12px 15px; white-space: nowrap;
+      scrollbar-width: none;
+    }
+    .filters-scroll::-webkit-scrollbar { display: none; }
+    
+    .filter-chip {
+      background: var(--surface); padding: 6px 15px;
+      border-radius: 15px; font-size: 13px; font-weight: 500;
+    }
+    .filter-chip.active { background: var(--text); color: black; }
+
+    /* --- RESULTADOS EM LISTA --- */
+    .results-container { padding: 10px 15px; }
+
+    .search-item {
+      display: flex; gap: 12px; margin-bottom: 15px;
+      text-decoration: none; color: inherit;
+    }
+
+    .search-thumb {
+      width: 160px; aspect-ratio: 16/9;
+      background: #333; border-radius: 8px;
+      object-fit: cover; flex-shrink: 0;
+    }
+
+    .search-info { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; }
+    
+    .search-info h3 {
+      margin: 0; font-size: 14px; line-height: 1.3;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .search-meta {
+      font-size: 11px; color: var(--text-dim); margin-top: 4px;
+    }
+
+    .channel-row {
+      display: flex; align-items: center; gap: 6px; margin-top: 8px;
+      font-size: 12px; color: var(--text-dim);
+    }
+    .channel-dot { width: 18px; height: 18px; background: #444; border-radius: 50%; }
+
+    /* --- MENSAGEM VAZIA --- */
+    .empty-state {
+      text-align: center; margin-top: 50px; color: var(--text-dim);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="search-header">
+    <button class="back-btn" onclick="history.back()">‹</button>
+    <form action="/lang=mobile/buscar" method="GET" class="search-input-wrapper">
+      <input type="text" name="q" placeholder="Pesquisar no Clippy" value="{{ query }}" id="searchInput" autocomplete="off">
+      {% if query %}
+        <span onclick="document.getElementById('searchInput').value=''; this.style.display='none'" style="color: #aaa; margin-right: 5px;">✕</span>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="filters-scroll">
+    <div class="filter-chip active">Tudo</div>
+    <div class="filter-chip">Vídeos</div>
+    <div class="filter-chip">Canais</div>
+    <div class="filter-chip">Recentemente enviados</div>
+    <div class="filter-chip">Mais vistos</div>
+  </div>
+
+  <main class="results-container">
+    {% for v in videos %}
+    <a href="/lang=mobile/video/{{ v.id }}" class="search-item">
+      <img src="{{ static_url }}uploads/{{ v.thumb }}" class="search-thumb">
+      <div class="search-info">
+        <h3>{{ v.title }}</h3>
+        <div class="search-meta">{{ v.views }} visualizações • {{ v.data_postagem }}</div>
+        <div class="channel-row">
+          <div class="channel-dot"></div>
+          <span>Nome do Canal</span>
+        </div>
+      </div>
+    </a>
+    {% else %}
+    <div class="empty-state">
+      <p>Não encontramos nada para "{{ query }}"</p>
+      <small>Tenta usar palavras-chave diferentes.</small>
+    </div>
+    {% endfor %}
+  </main>
+
+  <nav style="position: fixed; bottom: 0; left: 0; right: 0; background: rgba(15,15,15,0.95); display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid rgba(255,255,255,0.1); z-index: 1000;">
+    <a href="/lang=mobile" style="text-decoration:none; color:#aaa; font-size:10px; display:flex; flex-direction:column; align-items:center;">
+      <img src="{{ static_url }}icons/home.png" style="width:24px; opacity:0.7"> Início
+    </a>
+    <a href="/lang=mobile/buscar" style="text-decoration:none; color:#fff; font-size:10px; display:flex; flex-direction:column; align-items:center;">
+      <img src="{{ static_url }}icons/search.png" style="width:24px;"> Pesquisar
+    </a>
+    <a href="/studio/upload" style="text-decoration:none; color:#aaa; font-size:10px; display:flex; flex-direction:column; align-items:center;">
+      <div style="background:var(--primary); width:35px; height:35px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-top:-5px;">+</div>
+    </a>
+    <a href="/playlists" style="text-decoration:none; color:#aaa; font-size:10px; display:flex; flex-direction:column; align-items:center;">
+      <img src="{{ static_url }}icons/playlist.png" style="width:24px; opacity:0.7"> Playlists
+    </a>
+  </nav>
+
+</body>
+</html>

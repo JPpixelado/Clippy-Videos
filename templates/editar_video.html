@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Editar Vídeo - {{ video.title }}</title>
+    <style>
+        body { font-family: Arial; background: #f4f4f4; padding: 30px; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { color: #e50914; }
+        label { display: block; margin: 15px 0 5px; font-weight: bold; }
+        input, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; }
+        button { background: #28a745; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; margin-top: 20px; }
+        button:hover { background: #218838; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Editar Vídeo: {{ video.title }}</h1>
+        
+        <form method="POST">
+            <label for="title">Título:</label>
+            <input type="text" id="title" name="title" value="{{ video.title }}" required>
+
+            <label for="description">Descrição:</label>
+            <textarea id="description" name="description" rows="6" required>{{ video.description }}</textarea>
+
+            <label for="chapters">Capítulos (formato: tempo - título, um por linha):</label>
+            <textarea id="chapters" name="chapters" rows="8" placeholder="0:00 Introdução\n2:30 Parte principal\n..."></textarea>
+
+            <button type="submit">Salvar Alterações</button>
+        </form>
+
+        <a href="{{ url_for('watch', video_id=video.id) }}" style="display: block; margin-top: 20px; text-align: center;">Voltar ao Player</a>
+    </div>
+</body>
+</html>

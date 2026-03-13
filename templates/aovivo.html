@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>🔴 Ao vivo agora | Clippy Videos</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f9f9f9; margin:0; padding:20px; 
+		background-color: {{ user_settings.cor_fundo }} !important;
+	}
+    h1 { margin-bottom:20px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:20px; }
+    .card { background:#fff; border-radius:12px; box-shadow:0 2px 6px rgba(0,0,0,0.08); overflow:hidden; text-decoration:none; color:#202124; }
+    .card video, .card img { width:100%; height:160px; object-fit:cover; background:#000; }
+    .card .info { padding:12px; }
+    .card .info h2 { font-size:16px; margin:0 0 6px; }
+    .card .info small { color:#555; }
+    .badge { color:#fff; background:red; padding:2px 6px; border-radius:6px; font-size:12px; }
+  </style>
+</head>
+<body>
+  <h1>🔴 Ao vivo agora</h1>
+  <div class="grid">
+    {% for live in lives %}
+      <a href="/player/{{ live.id }}" class="card">
+        <img src="/channels/@{{ live.channel }}/foto.jpg" onerror="this.src='/static/user.png'">
+        <div class="info">
+          <h2>{{ live.title }}</h2>
+          <small>@{{ live.channel }}</small><br>
+          <span class="badge">Ao vivo</span>
+        </div>
+      </a>
+    {% else %}
+      <p>Nenhuma transmissão ao vivo no momento.</p>
+    {% endfor %}
+  </div>
+</body>
+</html>

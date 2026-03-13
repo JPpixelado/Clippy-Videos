@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Download de Vídeo</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #f9f9f9;
+			background-color: {{ user_settings.cor_fundo }} !important;
+            padding: 40px;
+            text-align: center;
+        }
+        form {
+            margin-bottom: 30px;
+        }
+        input {
+            padding: 10px;
+            font-size: 16px;
+            width: 300px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #e50914;
+            color: white;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 6px;
+        }
+        video {
+            margin-top: 20px;
+            max-width: 600px;
+            border-radius: 8px;
+        }
+        .error {
+            color: red;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Download de vídeo</h2>
+    <form method="POST">
+        <input type="text" name="video_id" placeholder="Digite o nome do vídeo ou ID" required>
+        <button type="submit">Ver prévia</button>
+    </form>
+
+    {% if video_preview %}
+  {% if video_preview and video_preview != 'not_found' %}
+  <h3>{{ video_preview.title }}</h3>
+  <p>{{ video_preview.description }}</p>
+  <small>Canal: {{ video_preview.channel }} | Views: {{ video_preview.views }}</small>
+  <br><br>
+
+  <iframe src="{{ url_for('watch', video_id=video_preview['id']) }}" width="640" height="360" frameborder="0" allowfullscreen></iframe>
+  <br><br>
+  <a href="{{ url_for('static', filename='uploads/' ~ video_preview['filename']) }}" download>
+    <button>Baixar vídeo</button>
+  </a>
+{% elif video_preview == 'not_found' %}
+  <div class="error">Vídeo não encontrado.</div>
+{% endif %}
+{% endif %}
+</body>
+</html>

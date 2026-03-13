@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Posts de @{{ username }}</title>
+  <style>
+    body {
+  font-family: 'Roboto', sans-serif;
+  background: #f9f9f9;
+  background-color: {{ user_settings.cor_fundo }} !important;
+  margin: 0;
+  padding: 0;
+  color: #333;
+}
+
+/* Header do canal */
+header {
+  background: #202020;
+  color: white;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+header img {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #e50914;
+}
+
+header .info h1 {
+  margin: 0;
+  font-size: 22px;
+  color: #fff;
+}
+
+header .info p {
+  margin: 4px 0;
+  font-size: 14px;
+  color: #ccc;
+}
+
+.subscribe-btn {
+  background: #e50914;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.3s;
+}
+.subscribe-btn:hover {
+  background: #b20710;
+}
+
+/* Links de navegação */
+header a {
+  color: white;
+  text-decoration: none;
+  font-size: 12px;
+  text-align: center;
+}
+header a img {
+  width: 28px;
+  height: 28px;
+  margin-bottom: 4px;
+}
+
+/* Título da seção */
+h1 {
+  font-size: 20px;
+  color: #e50914;
+  margin: 20px;
+}
+
+/* Card de post */
+.post {
+  background: white;
+  padding: 20px;
+  margin: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.post:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+}
+
+.post h3 {
+  margin: 0 0 10px;
+  color: #e50914;
+  font-size: 18px;
+}
+
+.post p {
+  font-size: 15px;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.post small {
+  color: #777;
+  font-size: 13px;
+}
+.nav-btn {
+  background: #4285f4;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 14px;
+  transition: background 0.2s ease;
+}
+.nav-btn:hover {
+  background: #3367d6;
+}
+  </style>
+</head>
+<body>
+    <header>
+  <img src="/foto_canal/{{ username }}" alt="Foto do canal"></img>
+  <div class="info">
+    <h1>{{ display_name }} (@{{ username }})</h1>
+    <p>{{ bio }}</p>
+    <p>{{ subscribers }} inscritos</p>
+    {% if not ja_inscrito %}
+    <form method="POST" action="/inscrever/{{ username }}">
+      <button class="subscribe-btn">Inscrever-se</button>
+    </form>
+    {% else %}
+    <p style="color: #5f6368;">Você já está inscrito neste canal.</p>
+    {% endif %}
+  </div>
+
+  <!-- Navegação -->
+  <nav style="display:flex; gap:20px; align-items:center;">
+    <a href="/@{{ username }}" class="nav-btn">Vídeos</a>
+    <a href="/@{{ username }}/posts" class="nav-btn">Posts</a>
+  </nav>
+</header>
+
+  <h1>📢 Posts de @{{ username }}</h1>
+
+  {% for post in posts %}
+  <div class="post">
+    <h3>{{ post.title }}</h3>
+    <p>{{ post.content }}</p>
+    <small>{{ post.date }}</small>
+  </div>
+  {% else %}
+  <p>Nenhum post publicado ainda.</p>
+  {% endfor %}
+</body>
+</html>
