@@ -1,0 +1,12 @@
+{
+  "video_id": "1",
+  "title": "Título desconhecido",
+  "channel": "p1xelado",
+  "collaborators": [
+    {
+      "name": "p1xelado",
+      "role": "colaborador",
+      "status": "pedido"
+    }
+  ]
+}

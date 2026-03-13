@@ -1,0 +1,19 @@
+# fly.toml app configuration file generated for play-videos on 2025-10-02T16:58:47-03:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'play-videos'
+primary_region = 'gru'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = false  # ✅ sem aspas e sem bagunça
+min_machines_running = 1    # ✅ mantém o app sempre acordado
+  processes = ['app']
+
+[[vm]]
+  memory = '2gb'
+  cpu_kind = 'shared'
+  cpus = 2
