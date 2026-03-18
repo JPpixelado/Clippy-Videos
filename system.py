@@ -1,3 +1,5 @@
+#isso vai ser removido a qualquer momento
+
 # system.py
 # Camadas de segurança centralizadas para o projeto Clippy
 # Uso: from system import secure_app, configure_logging
