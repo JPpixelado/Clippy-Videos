@@ -1,6 +1,6 @@
 # app.py
-STATIC_SERVER_URL = "https://192.168.0.150:7071/"
-STUDIO_BASE_URL = "https://192.168.0.150:7072/"  # URL do servidor independente
+STATIC_SERVER_URL = "httpS://192.168.0.150:7071/"
+STUDIO_BASE_URL = "httpS://192.168.0.150:7072/"  # URL do servidor independente
 import os
 import json
 import uuid
@@ -13,8 +13,6 @@ from werkzeug.utils import secure_filename
 from datetime import datetime
 from admin import admin_bp
 from flask import request
-from system import secure_app, configure_logging
-
 
 # ---------- CONFIG ----------
 
@@ -48,9 +46,6 @@ app.secret_key = 'chave-secreta-do-jp'
 FFMPEG_PATH = r'D:\ffmpeg\bin\ffmpeg.exe'
 
 app.register_blueprint(admin_bp)
-
-configure_logging(app)
-secure_app(app)
 
 @app.context_processor
 def inject_static_url():
@@ -1735,6 +1730,28 @@ def editar_video(video_id):
         return redirect(url_for('player', item_id=video_id))
 
     return render_template('editar_video.html', video=video)
+
+@app.route('/api/videos')
+def api_videos():
+    page = int(request.args.get('page', 1))
+    per_page = int(request.args.get('per_page', 12))
+    offset = (page - 1) * per_page
+
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("""
+        SELECT id, title, views, channel, thumb 
+        FROM videos 
+        ORDER BY views DESC 
+        LIMIT ? OFFSET ?
+    """, (per_page, offset))
+    videos = [dict(r) for r in c.fetchall()]
+    conn.close()
+
+    return jsonify({
+        'videos': videos,
+        'static_url': STATIC_SERVER_URL
+    })
 
 # Run
 if __name__ == '__main__':

@@ -9,14 +9,13 @@ from datetime import datetime
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
 from werkzeug.utils import secure_filename
 from flask import current_app
-from system import secure_app, configure_logging
 
 # Configurações globais
 STATIC_SERVER_URL = "https://192.168.0.150:7071/"  # Servidor estático separado
 APP_BASE_URL = "https://192.168.0.150:7070/"       # URL do app principal
 SQLITE_DB = r'D:\sqlite\app.db' if os.name == 'nt' else 'app.db'  # Banco compartilhado
 UPLOAD_FOLDER = r'D:\cstatic\static\uploads' if os.name == 'nt' else 'static/uploads'
-FFMPEG_PATH = r'D:\ffmpeg\bin\ffmpeg.exe' if os.name == 'nt' else 'ffmpeg'
+FFMPEG_PATH = r'L:\ffmpeg\bin\ffmpeg.exe' if os.name == 'nt' else 'ffmpeg'
 
 # Cria o app Flask independente
 studio_app = Flask(__name__)
@@ -27,13 +26,6 @@ studio_app.config['FFMPEG_PATH'] = FFMPEG_PATH
 
 # Garante pasta de uploads
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-#ego
-from system import secure_app, configure_logging
-
-#AURA
-configure_logging(studio_app)
-secure_app(studio_app)
 
 # Função para configs do usuário (copiada para independência)
 def get_user_config_path(username):
@@ -463,13 +455,9 @@ def studio_posts(username):
 
 @studio_app.route('/delete_video/<video_id>', methods=['POST'])
 def delete_video(video_id):
-    username = session.get('username')
-    if not username:
-        return "Não logado", 403
-
     video = get_video(video_id)
-    if not video or video.get('channel') != username:
-        return "Vídeo não encontrado ou não pertence ao canal", 404
+    if not video:
+        return "Vídeo não encontrado", 404
 
     conn = get_db()
     c = conn.cursor()
@@ -478,13 +466,17 @@ def delete_video(video_id):
     conn.close()
 
     upload_folder = current_app.config['UPLOAD_FOLDER']
-    for fname in [video.get('filename'), video.get('filename_144p'), video.get('filename_360p'), video.get('filename_480p')]:
+    for fname in [video.get('filename'),
+                  video.get('filename_144p'),
+                  video.get('filename_360p'),
+                  video.get('filename_480p')]:
         if fname:
             path = os.path.join(upload_folder, fname)
             if os.path.exists(path):
                 os.remove(path)
 
-    return redirect(url_for('studio', username=username))
+    # redireciona de volta pro estúdio
+    return redirect(url_for('/'))
 
 @studio_app.route('/api/collab/gerenciar', methods=['POST'])
 def api_gerenciar_collab():
