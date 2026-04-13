@@ -3,512 +3,917 @@
 <head>
   <meta charset="UTF-8">
   <title>{{ video.title }} — Player interno</title>
+  <link rel="icon" href="{{ static_url }}static.png" type="image/png">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-  :root { color-scheme: dark; }
-  html, body { height: 100%; margin: 0; background: #000; font-family: system-ui, sans-serif; }
+    :root { color-scheme: dark; }
 
-  .pv-stage {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    overflow: hidden; /* Impede scroll */
-    /* Importante: permite que a div pai aceite cliques mesmo sem cursor, 
-       mas vamos controlar o cursor via classe extra */
-  }
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: linear-gradient(135deg, #0a0a1f 0%, #1a1a2e 100%);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      color: #fff;
+    }
 
-  .pv-video {
-    position: absolute; inset: 0; width: 100%; height: 100%;
-    object-fit: contain; background: #000;
-    cursor: default; /* Garante que o vídeo tenha cursor padrão quando visível */
-  }
+    .pv-stage {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+    }
 
-  /* --- TELA FINAL (A SEGUIR) --- */
-  .pv-endscreen {
-      position: absolute; inset: 0; background: rgba(0,0,0,0.85);
-      z-index: 20; display: none; flex-direction: column;
-      align-items: center; justify-content: center; color: white; padding: 20px;
-  }
-  
-  .pv-grid { display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; margin-top: 20px; }
+    .pv-video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+    }
 
-  .pv-card {
-      width: 200px; text-decoration: none; color: white;
-      background: #1f1f1f; border-radius: 8px; overflow: hidden;
-      transition: transform 0.2s;
-  }
-  .pv-card:hover { transform: scale(1.05); }
-  .pv-card img { width: 100%; height: 112px; object-fit: cover; }
-  .pv-info { padding: 8px; font-size: 14px; font-weight: bold; }
-  
-  .btn-replay {
-      margin-top: 20px; padding: 10px 20px; background: white; color: black;
-      border: none; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 16px;
-  }
-  .btn-replay:hover { background: #ddd; }
+    /* TELA FINAL */
+    .pv-endscreen {
+      position: absolute;
+      inset: 0;
+      background: rgba(10,10,31,0.92);
+      z-index: 20;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      padding: 20px;
+    }
+    
+    .pv-grid { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; margin-top: 25px; }
 
-  /* --- UI PADRÃO --- */
-  .pv-ui {
-    position: absolute; bottom: 0; left: 0; right: 0;
-    display: flex; flex-direction: column; gap: 8px; padding: 12px 16px;
-    background: linear-gradient(to top, rgba(0,0,0,.6), rgba(0,0,0,0));
-    color: #fff; z-index: 30;
-    transition: opacity 0.3s ease; /* Transição suave */
-    opacity: 1;
-    pointer-events: auto; /* Aceita cliques normalmente */
-  }
+    .pv-card {
+      width: 210px;
+      text-decoration: none;
+      color: white;
+      background: linear-gradient(145deg, #1f1f38, #2c2c4c);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #6a6aff;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.7);
+      transition: all 0.3s;
+    }
+    .pv-card:hover { transform: translateY(-6px) scale(1.04); box-shadow: 0 15px 30px rgba(106,106,255,0.5); }
+    .pv-card img { width: 100%; height: 118px; object-fit: cover; }
+    .pv-info { padding: 10px; font-size: 14.5px; font-weight: 600; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
 
-  .pv-scrub {
-    height: 6px; background: linear-gradient(90deg, #1a1a1a, #2a2a2a);
-    border-radius: 999px; position: relative; cursor: pointer;
-    overflow: hidden; transition: height 0.15s ease;
-  }
-  .pv-scrub:hover { height: 10px; }
-  .pv-scrub .fill {
-    position: absolute; left: 0; top: 0; bottom: 0; width: 0%;
-    background: linear-gradient(90deg, #ff2d8d, #ff4fc7, #ff72ec);
-    border-radius: inherit; transition: width 0.12s ease-out;
-    box-shadow: 0 0 12px rgba(255, 80, 150, 0.5);
-  }
-  .pv-scrub .dot {
-    position: absolute; top: 50%; transform: translate(-50%, -50%); left: 0%;
-    width: 12px; height: 12px; background: white; border-radius: 50%;
-    box-shadow: 0 0 8px rgba(255,255,255,0.7); pointer-events: none; opacity: 0;
-    transition: opacity 0.2s ease, transform 0.15s ease;
-  }
-  .pv-scrub:hover .dot { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
-  
-  #timeHover {
-    position: absolute; top: -26px; font-size: 12px;
-    background: rgba(0,0,0,0.7); padding: 4px 6px; border-radius: 6px;
-    pointer-events: none; color: #fff; opacity: 0; transition: opacity .1s ease;
-  }
+    .btn-replay {
+      margin-top: 25px;
+      padding: 12px 28px;
+      background: linear-gradient(#6a6aff, #9d9dff);
+      color: white;
+      border: none;
+      border-radius: 30px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 17px;
+      box-shadow: 0 6px 18px rgba(106,106,255,0.6);
+    }
 
-  .pv-controls { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 8px; }
-  
-  .btn {
-    background-color: rgba(255, 255, 255, 0.08); border: none; padding: 10px;
-    border-radius: 12px; cursor: pointer; transition: background 0.2s ease;
-    display: flex; align-items: center; justify-content: center; width: 40px; height: 40px;
-  }
-  .btn:hover { background-color: rgba(255, 255, 255, 0.2); }
-  .btn img { width: 24px; height: 24px; object-fit: contain; }
+    /* UI PRINCIPAL */
+    .pv-ui {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 14px 20px 18px;
+      background: linear-gradient(to top, rgba(10,10,31,0.95), rgba(26,26,46,0.6));
+      color: #fff;
+      z-index: 30;
+      border-top: 3px solid #6a6aff;
+      box-shadow: 0 -8px 25px rgba(0,0,0,0.8);
+      transition: opacity 0.4s ease;
+    }
 
-  .pv-title {
-    position: absolute; top: 8px; left: 12px; font-size: 18px; font-weight: bold;
-    background: rgba(0,0,0,0.5); padding: 6px 12px; border-radius: 8px; color: #fff;
-    opacity: .85; z-index: 10;
-    transition: opacity 0.3s ease;
-  }
-  .pv-time { margin-left: auto; opacity: .9; font-size: 14px; }
+    /* BARRA DE PROGRESSO COM CAPÍTULOS */
+    .pv-scrub {
+      height: 8px;
+      background: linear-gradient(90deg, #1a1a2e, #2c2c4c);
+      border-radius: 9999px;
+      position: relative;
+      cursor: pointer;
+      overflow: visible;
+      box-shadow: 0 0 12px rgba(106,106,255,0.6), inset 0 2px 6px rgba(255,255,255,0.15);
+      transition: height 0.2s ease;
+    }
+    .pv-scrub:hover { height: 14px; }
 
-  .quality-option { display: block; width: 100%; margin-bottom: 6px; background: #2a2a2a; color: white; font-size: 14px; }
-  .quality-option:hover { background: #444; }
+    .pv-scrub .fill {
+      position: absolute; left: 0; top: 0; bottom: 0; width: 0%;
+      background: linear-gradient(90deg, #6a6aff, #9d9dff, #ff72ec);
+      border-radius: inherit;
+      box-shadow: 0 0 18px #6a6aff, 0 0 30px #ff72ec;
+      transition: width 0.1s linear;
+      z-index: 2;
+    }
 
-  /* --- CLASSES PARA ESCONDER A INTERFACE (A MÁGICA) --- */
-  
-  /* 1. Esconde APENAS o visual dos botões e DESATIVA o clique neles */
-  .hidden-ui {
-    opacity: 0 !important;
-    pointer-events: none !important; /* O clique "passa" pela UI invisível e pega no vídeo */
-  }
+    /* MARCADORES DE CAPÍTULOS */
+    .chapter-marker {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: rgba(255, 255, 255, 0.6);
+      z-index: 1;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .chapter-marker:hover {
+      width: 4px;
+      background: rgba(255, 255, 255, 0.9);
+    }
 
-  /* 2. Esconde o ponteiro do mouse no container principal */
-  .hide-cursor {
-    cursor: none !important;
-  }
+    /* TOOLTIP DE CAPÍTULO */
+    .chapter-tooltip {
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%) translateY(-8px);
+      background: linear-gradient(145deg, #1f1f38, #2c2c4c);
+      border: 2px solid #6a6aff;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      box-shadow: 0 4px 15px rgba(106,106,255,0.6);
+    }
+    .chapter-marker:hover .chapter-tooltip {
+      opacity: 1;
+    }
 
-  /* --- ÍCONES CENTRAIS --- */
-  #centerIcon {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    background: rgba(0,0,0,0.5); border-radius: 50%; padding: 20px;
-    display: none; align-items: center; justify-content: center;
-    pointer-events: none; z-index: 15;
-  }
-  #volumeDisplay {
-    position: fixed; top: 55%; left: 50%; transform: translate(-50%, -50%);
-    background: rgba(0,0,0,0.6); color: white; font-size: 18px; padding: 8px 16px;
-    border-radius: 12px; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; z-index: 999;
-  }
-  .btn-settings-icon { transition: transform 0.35s ease; transform-origin: center; }
-  .menu-item {
-    padding: 8px 12px;
-    cursor: pointer;
-    border-radius: 4px;
-  }
-  .menu-item:hover {
-    background: #333;
-  }
-  .menu-item:hover { background: #333; }
+    .pv-scrub .dot {
+      position: absolute; top: 50%; transform: translate(-50%, -50%); left: 0%;
+      width: 16px; height: 16px; background: #fff; border: 3px solid #6a6aff;
+      border-radius: 50%; box-shadow: 0 0 20px #6a6aff; pointer-events: none; opacity: 0;
+      transition: all 0.2s;
+      z-index: 3;
+    }
+    .pv-scrub:hover .dot { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+
+    /* PRÉ-VISUALIZAÇÃO */
+    #previewBox {
+      position: absolute; bottom: 70px; display: none;
+      background: linear-gradient(145deg, #1f1f38, #2c2c4c);
+      border: 3px solid #6a6aff;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 0 30px rgba(106,106,255,0.8);
+      z-index: 9999;
+      pointer-events: none;
+      text-align: center;
+      min-width: 180px;
+    }
+    #previewTime {
+      padding: 6px 12px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+      background: rgba(0,0,0,0.4);
+    }
+    #previewChapter {
+      padding: 4px 12px;
+      font-size: 12px;
+      color: #9d9dff;
+      background: rgba(0,0,0,0.6);
+    }
+
+    .pv-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-top: 6px;
+    }
+    
+    .btn {
+      background: linear-gradient(#3a3a5c, #25253d);
+      border: 2px solid #6a6aff;
+      padding: 10px;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: all 0.3s;
+      width: 46px;
+      height: 46px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+    }
+    .btn:hover {
+      background: linear-gradient(#6a6aff, #9d9dff);
+      transform: scale(1.1);
+      box-shadow: 0 0 20px #6a6aff;
+    }
+    .btn img { width: 26px; height: 26px; filter: brightness(1.15); }
+
+    .pv-title {
+      position: absolute;
+      top: 14px;
+      left: 18px;
+      font-size: 19px;
+      font-weight: 700;
+      background: rgba(10,10,31,0.75);
+      padding: 8px 16px;
+      border-radius: 10px;
+      border: 1px solid #6a6aff;
+      color: #fff;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.9);
+      z-index: 10;
+      transition: opacity 0.4s ease;
+    }
+
+    .pv-time { margin-left: auto; opacity: 0.95; font-size: 15px; font-weight: 600; }
+
+    .hide-cursor { cursor: none !important; }
+    .hidden-ui { opacity: 0 !important; pointer-events: none !important; }
+
+    /* ÍCONE CENTRAL */
+    #centerIcon {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 15;
+      display: none;
+      animation: fadeInOut 0.65s ease;
+    }
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+      50% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+    }
+
+    /* MENU DE CONFIGURAÇÕES */
+    .settings-menu {
+      position: absolute;
+      bottom: 62px;
+      right: 8px;
+      background: linear-gradient(145deg, #1f1f38, #2c2c4c);
+      border: 3px solid #6a6aff;
+      border-radius: 12px;
+      padding: 10px;
+      box-shadow: 0 0 30px rgba(106,106,255,0.8);
+      min-width: 200px;
+      z-index: 9999;
+      display: none;
+    }
+
+    .settings-menu.active { display: block; }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 98%;
+      padding: 12px 1px;
+      margin-bottom: 6px;
+      background: linear-gradient(#3a3a5c, #25253d);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      border: 2px solid #5e5eff;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    }
+    .menu-item:last-child { margin-bottom: 0; }
+    .menu-item:hover {
+      background: linear-gradient(#6a6aff, #9d9dff);
+      border-color: #9d9dff;
+      transform: translateX(4px);
+    }
+
+    .menu-item-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .menu-item-value {
+      font-size: 13px;
+      opacity: 0.8;
+    }
+
+    /* SUBMENU (VELOCIDADE E QUALIDADE) */
+    .submenu {
+      position: absolute;
+      bottom: 0;
+      right: 100%;
+      margin-right: 10px;
+      background: linear-gradient(145deg, #1f1f38, #2c2c4c);
+      border: 3px solid #6a6aff;
+      border-radius: 12px;
+      padding: 10px;
+      box-shadow: 0 0 30px rgba(106,106,255,0.8);
+      min-width: 160px;
+      display: none;
+    }
+
+    .submenu.active { display: block; }
+
+    .submenu-item {
+      display: block;
+      width: 80%;
+      padding: 10px 16px;
+      margin-bottom: 6px;
+      background: linear-gradient(#3a3a5c, #25253d);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      border: 2px solid #5e5eff;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: left;
+    }
+    .submenu-item:last-child { margin-bottom: 0; }
+    .submenu-item:hover {
+      background: linear-gradient(#6a6aff, #9d9dff);
+      border-color: #9d9dff;
+      transform: translateX(-4px);
+    }
+    .submenu-item.active {
+      background: linear-gradient(#6a6aff, #9d9dff);
+      border-color: #ff72ec;
+      box-shadow: 0 0 15px rgba(255, 114, 236, 0.6);
+    }
+
+    /* MENU DE LEGENDAS */
+    .subtitle-menu {
+      position: absolute;
+      bottom: 62px;
+      right: 68px;
+      background: linear-gradient(145deg, #1f1f38, #2c2c4c);
+      border: 3px solid #6a6aff;
+      border-radius: 12px;
+      padding: 10px;
+      box-shadow: 0 0 30px rgba(106,106,255,0.8);
+      min-width: 180px;
+      z-index: 9999;
+      display: none;
+    }
+
+    .subtitle-option {
+      display: block;
+      width: 100%;
+      padding: 10px 16px;
+      margin-bottom: 6px;
+      background: linear-gradient(#3a3a5c, #25253d);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      border: 2px solid #5e5eff;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: left;
+    }
+    .subtitle-option:last-child { margin-bottom: 0; }
+    .subtitle-option:hover {
+      background: linear-gradient(#6a6aff, #9d9dff);
+      border-color: #9d9dff;
+      transform: translateX(4px);
+    }
+    .subtitle-option.active {
+      background: linear-gradient(#6a6aff, #9d9dff);
+      border-color: #ff72ec;
+      box-shadow: 0 0 15px rgba(255, 114, 236, 0.6);
+    }
+
+    /* CAPÍTULO ATUAL */
+    .current-chapter {
+      position: absolute;
+      top: 60px;
+      left: 18px;
+      background: rgba(10,10,31,0.85);
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid #6a6aff;
+      font-size: 14px;
+      font-weight: 600;
+      color: #9d9dff;
+      z-index: 10;
+      transition: opacity 0.4s ease;
+      display: none;
+    }
+
+    .current-chapter.active {
+      display: block;
+    }
   </style>
 </head>
 <body>
   <div class="pv-stage" id="pv">
-    <video class="pv-video" id="vid" preload="metadata">
-      <source src="{{ static_url }}uploads/{{ video.filename }}" type="video/mp4">
+    <video class="pv-video" id="vid" src="{{ static_url }}uploads/{{ video.filename }}" preload="metadata">
+      <!-- LEGENDAS SRT -->
+      {% if video.subtitle_file %}
+      <track id="subtitleTrack" label="Português" kind="subtitles" srclang="pt" src="{{ static_url }}uploads/subtitles/{{ video.subtitle_file }}">
+      {% endif %}
     </video>
 
-	<!-- Menu de contexto (clique direito no vídeo) -->
-<div id="contextMenu" style="position: absolute; background: #1f1f1f; color: white; border-radius: 8px; padding: 10px 0; box-shadow: 0 4px 15px rgba(0,0,0,0.6); display: none; z-index: 10000; min-width: 200px; font-family: Arial;">
-<div class="menu-item" onclick="editVideo()" style="padding: 10px 20px; cursor: pointer;">Editar vídeo (título, descrição, thumb, capítulos)</div>
-  <hr style="border: 0; border-top: 1px solid #444; margin: 5px 0;">
-  <div class="menu-item" onclick="copyVideoLink()" style="padding: 10px 20px; cursor: pointer;">Copiar link do vídeo</div>
-  <div class="menu-item" onclick="shareVideo()" style="padding: 10px 20px; cursor: pointer;">Compartilhar</div>
-  <div class="menu-item" onclick="reportVideo()" style="padding: 10px 20px; cursor: pointer;">Reportar vídeo</div>
-</div>
-
-    <div class="pv-title">{{ video.title }}</div>
-
+    <!-- TELA FINAL -->
     <div class="pv-endscreen" id="endScreen">
-        <h3>A seguir</h3>
-        <div class="pv-grid">
-            {% for rel in relacionados[:3] %}
-            <a href="/watch/{{ rel.id }}" class="pv-card">
-                <img src="{{ static_url }}uploads/{{ rel.thumb }}" alt="{{ rel.title }}">
-                <div class="pv-info">
-                    <span class="pv-card-title">{{ rel.title }}</span>
-                </div>
-            </a>
-            {% else %}
-            <p>Nenhum vídeo A seguir.</p>
-            {% endfor %}
-        </div>
-        <button class="btn-replay" onclick="replayVideo()">🔄 Replay</button>
+      <h3 style="font-size:1.6rem; margin-bottom:10px;">A seguir</h3>
+      <div class="pv-grid">
+        {% for rel in relacionados[:3] %}
+        <a href="/watch/{{ rel.id }}" class="pv-card">
+          <img src="{{ static_url }}uploads/{{ rel.thumb }}" alt="{{ rel.title }}">
+          <div class="pv-info">{{ rel.title }}</div>
+        </a>
+        {% endfor %}
+      </div>
+      <button class="btn-replay" onclick="replayVideo()">🔄 REPLAY</button>
     </div>
 
-    <div class="pv-ui">
+    <!-- TÍTULO -->
+    <div class="pv-title" id="titleBar">{{ video.title }}</div>
+
+    <!-- CAPÍTULO ATUAL -->
+    <div class="current-chapter" id="currentChapter"></div>
+
+    <!-- UI CONTROLES -->
+    <div class="pv-ui" id="ui">
       <div class="pv-scrub" id="scrub">
         <div class="fill" id="fill"></div>
         <div class="dot" id="dot"></div>
-        <div id="timeHover"></div>
+        <div id="previewBox">
+          <div id="previewTime"></div>
+          <div id="previewChapter"></div>
+        </div>
       </div>
 
       <div class="pv-controls">
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <button class="btn" id="btnTogglePlay" title="Play/Pause">
-                <img id="playIcon" src="{{ static_url }}icons/play.png" alt="Play">
-            </button>
-
-            <div style="position: relative;">
-                <button class="btn" id="btnToggleMute" title="Volume">
-                    <img id="volumeIcon" src="{{ static_url }}icons/unmute.png" alt="Volume">
-                </button>
-                <div id="volumeControl" style="display: none; position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%); background: #1f1f1f; padding: 8px; border-radius: 8px; z-index: 100;">
-                    <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1" style="writing-mode: bt-lr; -webkit-appearance: slider-vertical; width: 24px; height: 100px; background: transparent;">
-                </div>
-            </div>
-            <span class="pv-time" id="time">00:00 / 00:00</span>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <button class="btn" id="btnTogglePlay"><img id="playIcon" src="{{ static_url }}icons/play.png" alt="Play"></button>
+          <div style="position: relative;">
+            <button class="btn" id="btnToggleMute"><img id="volumeIcon" src="{{ static_url }}icons/unmute.png" alt="Volume"></button>
+          </div>
+          <span class="pv-time" id="time">00:00 / 00:00</span>
         </div>
 
         <div style="display: flex; align-items: center; gap: 8px;">
+          <!-- Botão de Legendas -->
+          <div style="position: relative;">
             <button class="btn" id="btnSubtitles" title="Legendas">
-                <img id="subIcon" src="{{ static_url }}icons/cc.png" alt="Legendas">
-            </button>
-            <button class="btn" id="btnCopyEmbed" title="Copiar embed">
-                <img src="{{ static_url }}icons/embed.png" alt="Embed">
+              <img src="{{ static_url }}icons/cc.png" alt="Legendas" style="width: 26px; height: 26px;">
             </button>
             
-            <div style="position: relative;">
-                <button class="btn" id="btnSettings" title="Qualidade">
-                    <img class="btn-settings-icon" id="settingsIcon" src="{{ static_url }}icons/settings.png" alt="Configurações">
-                </button>
-                <div id="qualityMenu" style="display: none; position: absolute; bottom: 40px; right: 0; background: #1f1f1f; border-radius: 8px; padding: 8px; z-index: 100;">
-                    <button class="btn quality-option" data-src="{{ static_url }}uploads/{{ video.filename }}">Padrão</button>
-                    {% if video.filename_480p %}
-                    <button class="btn quality-option" data-src="{{ static_url }}uploads/{{ video.filename_480p }}">480p</button>
-                    {% endif %}
-					{% if video.filename_360p %}
-                    <button class="btn quality-option" data-src="{{ static_url }}uploads/{{ video.filename_360p }}">360p</button>
-                    {% endif %}
-                    {% if video.filename_144p %}
-                    <button class="btn quality-option" data-src="{{ static_url }}uploads/{{ video.filename_144p }}">144p</button>
-                    {% endif %}
-                </div>
+            <!-- Menu de Legendas -->
+            <div class="subtitle-menu" id="subtitleMenu">
+              <div class="subtitle-option" data-lang="off">Desativado</div>
+              {% if video.subtitle_file %}
+              <div class="subtitle-option active" data-lang="pt">Português</div>
+              {% endif %}
             </div>
+          </div>
 
-            <button class="btn" id="btnFullscreen" title="Tela cheia">
-                <img src="{{ static_url }}icons/fullscreen.png" alt="Fullscreen">
+          <!-- Botão de Configurações -->
+          <div style="position: relative;">
+            <button class="btn" id="btnSettings" title="Configurações">
+              <img src="{{ static_url }}icons/settings.png" alt="Configurações">
             </button>
+
+            <!-- Menu de Configurações -->
+            <div class="settings-menu" id="settingsMenu">
+              <!-- Velocidade -->
+              <div class="menu-item" id="speedMenuItem">
+                <span class="menu-item-label">
+                  ⚡ Velocidade
+                </span>
+                <span class="menu-item-value" id="speedValue">1x</span>
+                
+                <!-- Submenu de Velocidade -->
+                <div class="submenu" id="speedSubmenu">
+                  <div class="submenu-item" data-speed="0.25">0.25x</div>
+                  <div class="submenu-item" data-speed="0.5">0.5x</div>
+                  <div class="submenu-item" data-speed="0.75">0.75x</div>
+                  <div class="submenu-item active" data-speed="1">Normal</div>
+                  <div class="submenu-item" data-speed="1.25">1.25x</div>
+                  <div class="submenu-item" data-speed="1.5">1.5x</div>
+                  <div class="submenu-item" data-speed="1.75">1.75x</div>
+                  <div class="submenu-item" data-speed="2">2x</div>
+                </div>
+              </div>
+
+              <!-- Qualidade -->
+              <div class="menu-item" id="qualityMenuItem">
+                <span class="menu-item-label">
+                  🎬 Qualidade
+                </span>
+                <span class="menu-item-value" id="qualityValue">Auto</span>
+                
+                <!-- Submenu de Qualidade -->
+                <div class="submenu" id="qualitySubmenu">
+                  <div class="submenu-item active" data-src="{{ static_url }}uploads/{{ video.filename }}">Automática</div>
+                  {% if video.filename_480p %}
+                  <div class="submenu-item" data-src="{{ static_url }}uploads/{{ video.filename_480p }}">480p</div>
+                  {% endif %}
+                  {% if video.filename_360p %}
+                  <div class="submenu-item" data-src="{{ static_url }}uploads/{{ video.filename_360p }}">360p</div>
+                  {% endif %}
+                  {% if video.filename_144p %}
+                  <div class="submenu-item" data-src="{{ static_url }}uploads/{{ video.filename_144p }}">144p</div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn" id="btnFullscreen"><img src="{{ static_url }}icons/fullscreen.png" alt="Fullscreen"></button>
         </div>
       </div>
     </div>
 
-    <div id="centerIcon"><img id="centerIconImg" src="" style="width: 64px; height: 64px;"></div>
-    <div id="volumeDisplay">Volume: 100%</div>
+    <div id="centerIcon"><img id="centerIconImg" src="" style="width: 72px; height: 72px;"></div>
   </div>
-
-<!-- Menu de contexto -->
-<div id="contextMenu" style="position: absolute; background: #1f1f1f; color: white; border-radius: 8px; padding: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); display: none; z-index: 9999; min-width: 180px;">
-  <div class="menu-item" onclick="copyLink()">Copiar link do vídeo</div>
-  <div class="menu-item" onclick="shareVideo()">Compartilhar</div>
-  <div class="menu-item" onclick="reportVideo()">Reportar</div>
-  <hr style="border-color: #444; margin: 6px 0;">
-  <div class="menu-item" onclick="toggleQualityMenu()">Qualidade</div>
-  <div class="menu-item" onclick="toggleFullscreen()">Tela cheia</div>
-</div>
 
   <script>
     const vid = document.getElementById('vid');
     const scrub = document.getElementById('scrub');
     const fill = document.getElementById('fill');
-    const time = document.getElementById('time');
+    const dot = document.getElementById('dot');
+    const timeEl = document.getElementById('time');
     const endScreen = document.getElementById('endScreen');
-    const stage = document.querySelector('.pv-stage');
+    const stage = document.getElementById('pv');
+    const ui = document.getElementById('ui');
+    const titleBar = document.getElementById('titleBar');
+    const previewBox = document.getElementById('previewBox');
+    const previewTime = document.getElementById('previewTime');
+    const previewChapter = document.getElementById('previewChapter');
     const playIcon = document.getElementById('playIcon');
     const centerIcon = document.getElementById('centerIcon');
     const centerIconImg = document.getElementById('centerIconImg');
+    const currentChapterEl = document.getElementById('currentChapter');
 
-    // --- FORMATAÇÃO DE TEMPO ---
+    let hideTimeout, lastMoveTime = Date.now();
+    let chapters = [];
+
+    // CARREGAR CAPÍTULOS
+    async function loadChapters() {
+      try {
+        const response = await fetch('{{ static_url }}uploads/chapters/{{ video.id }}.txt');
+        if (response.ok) {
+          const text = await response.text();
+          const lines = text.trim().split('\n');
+          
+          chapters = lines.map(line => {
+            const match = line.match(/^(\d+):(\d+)\s*-\s*(.+)$/);
+            if (match) {
+              const minutes = parseInt(match[1]);
+              const seconds = parseInt(match[2]);
+              const title = match[3].trim();
+              const time = minutes * 60 + seconds;
+              return { time, title };
+            }
+            return null;
+          }).filter(c => c !== null);
+
+          chapters.sort((a, b) => a.time - b.time);
+          renderChapterMarkers();
+        }
+      } catch (e) {
+        console.log('Nenhum capítulo encontrado');
+      }
+    }
+
+    // RENDERIZAR MARCADORES DE CAPÍTULOS
+    function renderChapterMarkers() {
+      if (!vid.duration || chapters.length === 0) return;
+      
+      chapters.forEach(chapter => {
+        const percent = (chapter.time / vid.duration) * 100;
+        const marker = document.createElement('div');
+        marker.className = 'chapter-marker';
+        marker.style.left = percent + '%';
+        
+        const tooltip = document.createElement('div');
+        tooltip.className = 'chapter-tooltip';
+        tooltip.textContent = chapter.title;
+        marker.appendChild(tooltip);
+        
+        marker.addEventListener('click', (e) => {
+          e.stopPropagation();
+          vid.currentTime = chapter.time;
+          endScreen.style.display = 'none';
+        });
+        
+        scrub.appendChild(marker);
+      });
+    }
+
+    // ATUALIZAR CAPÍTULO ATUAL
+    function updateCurrentChapter() {
+      if (chapters.length === 0) return;
+      
+      const current = vid.currentTime;
+      let currentChapter = null;
+      
+      for (let i = chapters.length - 1; i >= 0; i--) {
+        if (current >= chapters[i].time) {
+          currentChapter = chapters[i];
+          break;
+        }
+      }
+      
+      if (currentChapter) {
+        currentChapterEl.textContent = currentChapter.title;
+        currentChapterEl.classList.add('active');
+      } else {
+        currentChapterEl.classList.remove('active');
+      }
+    }
+
+    // OBTER CAPÍTULO NO TEMPO
+    function getChapterAtTime(time) {
+      if (chapters.length === 0) return null;
+      
+      for (let i = chapters.length - 1; i >= 0; i--) {
+        if (time >= chapters[i].time) {
+          return chapters[i].title;
+        }
+      }
+      return null;
+    }
+
     function fmt(s) {
-      const m = Math.floor(s / 60).toString().padStart(2,'0');
-      const ss = Math.floor(s % 60).toString().padStart(2,'0');
+      const m = Math.floor(s / 60).toString().padStart(2, '0');
+      const ss = Math.floor(s % 60).toString().padStart(2, '0');
       return `${m}:${ss}`;
     }
 
-    // --- ATUALIZA BARRA DE PROGRESSO ---
     function updateUI() {
       const dur = vid.duration || 0;
       const cur = vid.currentTime || 0;
-      time.textContent = `${fmt(cur)} / ${fmt(dur)}`;
-      const pct = dur ? (cur / dur) * 100 : 0;
-      fill.style.width = pct + '%';
+      timeEl.textContent = `${fmt(cur)} / ${fmt(dur)}`;
+      fill.style.width = dur ? (cur / dur) * 100 + '%' : '0%';
+      updateCurrentChapter();
     }
 
     vid.addEventListener('timeupdate', updateUI);
-    vid.addEventListener('loadedmetadata', updateUI);
+    vid.addEventListener('loadedmetadata', () => {
+      updateUI();
+      loadChapters();
+    });
 
-    // --- LÓGICA DE MOSTRAR/ESCONDER UI E MOUSE (O CORAÇÃO DO PROBLEMA) ---
-    let hideTimeout;
-
+    // Controle de visibilidade
     function showUI() {
-        // Remove a classe que esconde o cursor da caixa mãe
-        stage.classList.remove('hide-cursor');
-        
-        // Remove a classe que esconde visualmente a interface
-        document.querySelector('.pv-ui').classList.remove('hidden-ui');
-        document.querySelector('.pv-title').classList.remove('hidden-ui');
-        
-        resetHideTimer();
+      stage.classList.remove('hide-cursor');
+      ui.classList.remove('hidden-ui');
+      titleBar.classList.remove('hidden-ui');
+      currentChapterEl.classList.remove('hidden-ui');
+      lastMoveTime = Date.now();
+      resetHideTimer();
     }
 
     function hideUI() {
-        // Se pausado ou tela final, NÃO esconde nada
-        if (vid.paused || endScreen.style.display === 'flex') return;
-
-        // 1. Esconde o cursor na caixa mãe
+      if (vid.paused || endScreen.style.display === 'flex') return;
+      if (Date.now() - lastMoveTime >= 3000) {
         stage.classList.add('hide-cursor');
-        
-        // 2. Esconde a interface visualmente E desativa cliques nela (pointer-events: none)
-        document.querySelector('.pv-ui').classList.add('hidden-ui');
-        document.querySelector('.pv-title').classList.add('hidden-ui');
+        ui.classList.add('hidden-ui');
+        titleBar.classList.add('hidden-ui');
+        currentChapterEl.classList.add('hidden-ui');
+      }
     }
 
     function resetHideTimer() {
-        clearTimeout(hideTimeout);
-        // Tempo: 1 segundo (1000ms)
-        hideTimeout = setTimeout(hideUI, 1000); 
+      clearTimeout(hideTimeout);
+      hideTimeout = setTimeout(hideUI, 3200);
     }
 
-    // Movimento do mouse traz tudo de volta
     document.addEventListener('mousemove', showUI);
     document.addEventListener('touchstart', showUI);
-    document.addEventListener('click', showUI); // Qualquer clique também acorda a interface
-    
-    // Inicia o timer
-    resetHideTimer();
+    document.addEventListener('click', showUI);
 
-    // --- PLAY / PAUSE COM ANIMAÇÃO ---
+    // Pré-visualização na barra
+    scrub.addEventListener('mousemove', (e) => {
+      showUI();
+      const rect = scrub.getBoundingClientRect();
+      const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      const previewSeconds = (vid.duration || 0) * pct;
+      
+      previewTime.textContent = fmt(previewSeconds);
+      
+      const chapterName = getChapterAtTime(previewSeconds);
+      if (chapterName) {
+        previewChapter.textContent = chapterName;
+        previewChapter.style.display = 'block';
+      } else {
+        previewChapter.style.display = 'none';
+      }
+      
+      previewBox.style.left = `calc(${pct * 100}% - 90px)`;
+      previewBox.style.display = 'block';
+    });
+    scrub.addEventListener('mouseleave', () => previewBox.style.display = 'none');
+
+    // Play/Pause
     function togglePlay() {
-        if (vid.paused) {
-            vid.play();
-            endScreen.style.display = 'none';
-            animarIconeCentral('play');
-        } else {
-            vid.pause();
-            animarIconeCentral('pause');
-            showUI(); // Garante que a UI fique visível ao pausar
-        }
-    }
-
-    // Clique no botão
-    document.getElementById('btnTogglePlay').onclick = togglePlay;
-
-    // Clique no vídeo (fundo)
-    vid.addEventListener('click', () => {
-        togglePlay();
-    });
-
-    // Atualiza ícone do botão inferior
-    vid.addEventListener('play', () => { playIcon.src = "{{ static_url }}icons/pause.png"; });
-    vid.addEventListener('pause', () => { playIcon.src = "{{ static_url }}icons/play.png"; });
-
-
-    // --- ÍCONE CENTRAL ANIMADO ---
-    function animarIconeCentral(tipo) {
-        let iconPath = "";
-        switch(tipo) {
-            case 'play': iconPath = "{{ static_url }}icons/play.png"; break;
-            case 'pause': iconPath = "{{ static_url }}icons/pause.png"; break;
-            case 'unmute': iconPath = "{{ static_url }}icons/unmute.png"; break;
-            case 'mute': iconPath = "{{ static_url }}icons/mute.png"; break;
-        }
-
-        if (iconPath) {
-            centerIconImg.src = iconPath;
-            centerIcon.style.display = 'flex';
-            
-            // Truque para reiniciar animação CSS se houvesse
-            void centerIcon.offsetWidth; 
-            
-            // Some após 600ms
-            setTimeout(() => {
-                centerIcon.style.display = 'none';
-            }, 600);
-        }
-    }
-
-    // --- TELA FINAL ---
-    vid.addEventListener('ended', () => {
-        endScreen.style.display = 'flex';
-        showUI(); // Mostra o mouse para clicar no replay
-    });
-
-    window.replayVideo = function() { // Global para o onclick do HTML funcionar
+      if (vid.paused) {
+        vid.play(); 
         endScreen.style.display = 'none';
-        vid.currentTime = 0;
-        vid.play();
+        animarIconeCentral('play');
+      } else {
+        vid.pause();
+        animarIconeCentral('pause');
+      }
+    }
+    document.getElementById('btnTogglePlay').onclick = togglePlay;
+    vid.addEventListener('click', togglePlay);
+
+    vid.addEventListener('play', () => playIcon.src = "{{ static_url }}icons/pause.png");
+    vid.addEventListener('pause', () => playIcon.src = "{{ static_url }}icons/play.png");
+
+    function animarIconeCentral(tipo) {
+      let src = tipo === 'play' ? "{{ static_url }}icons/play.png" : "{{ static_url }}icons/pause.png";
+      centerIconImg.src = src;
+      centerIcon.style.display = 'flex';
+      setTimeout(() => centerIcon.style.display = 'none', 650);
     }
 
-    // --- BARRA DE PROGRESSO (SCRUB) ---
-    scrub.addEventListener('mousedown', () => endScreen.style.display = 'none');
+    // Tela Final
+    vid.addEventListener('ended', () => { 
+      endScreen.style.display = 'flex'; 
+      showUI(); 
+    });
+    window.replayVideo = () => { 
+      endScreen.style.display = 'none'; 
+      vid.currentTime = 0; 
+      vid.play(); 
+    };
+
+    // Clique na barra de progresso
     scrub.addEventListener('click', (e) => {
+      if (e.target.classList.contains('chapter-marker')) return;
       const rect = scrub.getBoundingClientRect();
       const pct = (e.clientX - rect.left) / rect.width;
-      if (vid.duration) {
-          vid.currentTime = pct * vid.duration;
-          endScreen.style.display = 'none';
-      }
+      if (vid.duration) vid.currentTime = pct * vid.duration;
+      endScreen.style.display = 'none';
     });
 
-    // --- FULLSCREEN ---
+    // Fullscreen
     document.getElementById('btnFullscreen').onclick = () => {
       if (!document.fullscreenElement) document.documentElement.requestFullscreen();
       else document.exitFullscreen();
     };
 
-    // --- VOLUME ---
-    const volumeSlider = document.getElementById('volumeSlider');
+    // Volume
     const btnToggleMute = document.getElementById('btnToggleMute');
     const volumeIcon = document.getElementById('volumeIcon');
-    const volumeControl = document.getElementById('volumeControl');
-
-    btnToggleMute.addEventListener('mouseenter', () => volumeControl.style.display = 'block');
-    btnToggleMute.addEventListener('mouseleave', () => setTimeout(() => { if(!volumeControl.matches(':hover')) volumeControl.style.display='none'; }, 300));
-    volumeControl.addEventListener('mouseleave', () => volumeControl.style.display = 'none');
-
-    volumeSlider.addEventListener('input', () => {
-        vid.volume = parseFloat(volumeSlider.value);
-        vid.muted = vid.volume === 0;
-        volumeIcon.src = vid.muted ? "{{ static_url }}icons/mute.png" : "{{ static_url }}icons/unmute.png";
-    });
-    
-    // Botão Mute alterna entre 0 e 1 (ou atual)
     btnToggleMute.onclick = () => {
-        vid.muted = !vid.muted;
-        volumeIcon.src = vid.muted ? "{{ static_url }}icons/mute.png" : "{{ static_url }}icons/unmute.png";
-        animarIconeCentral(vid.muted ? 'mute' : 'unmute');
-    }
+      vid.muted = !vid.muted;
+      volumeIcon.src = vid.muted ? "{{ static_url }}icons/mute.png" : "{{ static_url }}icons/unmute.png";
+    };
 
-    // --- TECLAS ---
-    document.addEventListener('keydown', (e) => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-      showUI();
-      switch (e.key.toLowerCase()) {
-        case ' ': case 'k': e.preventDefault(); togglePlay(); break;
-        case 'm': btnToggleMute.click(); break;
-        case 'f': document.getElementById('btnFullscreen').click(); break;
-        case 'arrowright': vid.currentTime += 5; break;
-        case 'arrowleft': vid.currentTime -= 5; break;
+    // MENU DE CONFIGURAÇÕES
+    const btnSettings = document.getElementById('btnSettings');
+    const settingsMenu = document.getElementById('settingsMenu');
+    const speedMenuItem = document.getElementById('speedMenuItem');
+    const speedSubmenu = document.getElementById('speedSubmenu');
+    const qualityMenuItem = document.getElementById('qualityMenuItem');
+    const qualitySubmenu = document.getElementById('qualitySubmenu');
+    const speedValue = document.getElementById('speedValue');
+    const qualityValue = document.getElementById('qualityValue');
+
+    btnSettings.addEventListener('click', (e) => {
+      e.stopPropagation();
+      settingsMenu.classList.toggle('active');
+      speedSubmenu.classList.remove('active');
+      qualitySubmenu.classList.remove('active');
+      subtitleMenu.style.display = 'none';
+    });
+
+    // Submenu de Velocidade
+    speedMenuItem.addEventListener('click', (e) => {
+      e.stopPropagation();
+      speedSubmenu.classList.toggle('active');
+      qualitySubmenu.classList.remove('active');
+    });
+
+    document.querySelectorAll('#speedSubmenu .submenu-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const speed = parseFloat(item.dataset.speed);
+        vid.playbackRate = speed;
+        
+        speedValue.textContent = speed === 1 ? '1x' : speed + 'x';
+        
+        document.querySelectorAll('#speedSubmenu .submenu-item').forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        
+        speedSubmenu.classList.remove('active');
+      });
+    });
+
+    // Submenu de Qualidade
+    qualityMenuItem.addEventListener('click', (e) => {
+      e.stopPropagation();
+      qualitySubmenu.classList.toggle('active');
+      speedSubmenu.classList.remove('active');
+    });
+
+    document.querySelectorAll('#qualitySubmenu .submenu-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const curTime = vid.currentTime;
+        const wasPlaying = !vid.paused;
+        
+        vid.src = item.dataset.src;
+        vid.currentTime = curTime;
+        if (wasPlaying) vid.play();
+        
+        qualityValue.textContent = item.textContent;
+        
+        document.querySelectorAll('#qualitySubmenu .submenu-item').forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        
+        qualitySubmenu.classList.remove('active');
+        settingsMenu.classList.remove('active');
+      });
+    });
+
+    // MENU DE LEGENDAS
+    const btnSubtitles = document.getElementById('btnSubtitles');
+    const subtitleMenu = document.getElementById('subtitleMenu');
+    const subtitleTrack = document.getElementById('subtitleTrack');
+
+    btnSubtitles.addEventListener('click', (e) => {
+      e.stopPropagation();
+      subtitleMenu.style.display = subtitleMenu.style.display === 'block' ? 'none' : 'block';
+      settingsMenu.classList.remove('active');
+    });
+
+    document.querySelectorAll('.subtitle-option').forEach(option => {
+      option.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const lang = option.dataset.lang;
+        
+        if (lang === 'off') {
+          if (subtitleTrack) subtitleTrack.track.mode = 'disabled';
+        } else {
+          if (subtitleTrack) subtitleTrack.track.mode = 'showing';
+        }
+        
+        document.querySelectorAll('.subtitle-option').forEach(o => o.classList.remove('active'));
+        option.classList.add('active');
+        
+        subtitleMenu.style.display = 'none';
+      });
+    });
+
+    // Fechar menus ao clicar fora
+    document.addEventListener('click', (e) => {
+      if (!btnSettings.contains(e.target) && !settingsMenu.contains(e.target)) {
+        settingsMenu.classList.remove('active');
+        speedSubmenu.classList.remove('active');
+        qualitySubmenu.classList.remove('active');
+      }
+      if (!btnSubtitles.contains(e.target) && !subtitleMenu.contains(e.target)) {
+        subtitleMenu.style.display = 'none';
       }
     });
 
-    // --- MENU DE QUALIDADE E EMBED ---
-    document.getElementById('btnSettings').onclick = () => {
-        const menu = document.getElementById('qualityMenu');
-        menu.style.display = (menu.style.display === 'none') ? 'block' : 'none';
-    };
-    
-    // Fecha menus se clicar fora
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('#btnSettings') && !e.target.closest('#qualityMenu')) {
-            document.getElementById('qualityMenu').style.display = 'none';
-        }
+    // Teclas
+    document.addEventListener('keydown', (e) => {
+      showUI();
+      if (e.key === ' ' || e.key === 'k') { e.preventDefault(); togglePlay(); }
+      if (e.key === 'f') document.getElementById('btnFullscreen').click();
+      if (e.key === 'm') document.getElementById('btnToggleMute').click();
+      if (e.key === 's') btnSettings.click();
+      if (e.key === 'c') btnSubtitles.click();
+      
+      // Setas para navegar entre capítulos
+      if (e.key === 'ArrowRight' && chapters.length > 0) {
+        e.preventDefault();
+        const current = vid.currentTime;
+        const next = chapters.find(c => c.time > current + 1);
+        if (next) vid.currentTime = next.time;
+      }
+      if (e.key === 'ArrowLeft' && chapters.length > 0) {
+        e.preventDefault();
+        const current = vid.currentTime;
+        const prev = [...chapters].reverse().find(c => c.time < current - 3);
+        if (prev) vid.currentTime = prev.time;
+      }
     });
 
-    document.querySelectorAll('.quality-option').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const curTime = vid.currentTime;
-            const playing = !vid.paused;
-            vid.src = btn.getAttribute('data-src');
-            vid.currentTime = curTime;
-            if(playing) vid.play();
-            document.getElementById('qualityMenu').style.display = 'none';
-        });
-    });
-
-    document.getElementById('btnCopyEmbed').onclick = () => {
-      const code = `<iframe src="https://192.168.0.150:7070/embed/{{ video.id }}" width="560" height="315" frameborder="0" allowfullscreen></iframe>`;
-      navigator.clipboard.writeText(code);
-      alert("Código copiado!");
-    };
-	// Menu de contexto (clique direito no player)
-const contextMenu = document.getElementById('contextMenu');
-const pvStage = document.getElementById('pv');
-
-pvStage.addEventListener('contextmenu', (e) => {
-  e.preventDefault();
-  contextMenu.style.display = 'block';
-  contextMenu.style.left = `${e.pageX}px`;
-  contextMenu.style.top = `${e.pageY}px`;
-});
-
-// Fecha o menu ao clicar fora
-document.addEventListener('click', (e) => {
-  if (!contextMenu.contains(e.target)) {
-    contextMenu.style.display = 'none';
-  }
-});
-
-// Funções do menu
-function editVideo() {
-  // Redireciona para a página de edição do vídeo
-  window.location.href = `/editar-video/{{ video.id }}`;
-  contextMenu.style.display = 'none';
-}
-
-function copyVideoLink() {
-  navigator.clipboard.writeText(window.location.href);
-  alert("Link do vídeo copiado!");
-  contextMenu.style.display = 'none';
-}
-
-function shareVideo() {
-  if (navigator.share) {
-    navigator.share({
-      title: '{{ video.title }}',
-      text: 'Confira esse vídeo no Clippy!',
-      url: window.location.src
-    });
-  } else {
-    alert("Compartilhamento não suportado. Copie o link manualmente.");
-  }
-  contextMenu.style.display = 'none';
-}
-
-function reportVideo() {
-  alert("Para reportar, envie um e-mail para suporte@clippy.local com o link do vídeo e o motivo.");
-  contextMenu.style.display = 'none';
-}
+    resetHideTimer();
   </script>
 </body>
 </html>

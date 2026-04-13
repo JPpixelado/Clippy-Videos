@@ -2,35 +2,146 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Editar Vídeo - {{ video.title }}</title>
+    <title>Editar Vídeo — {{ video.title }}</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
     <style>
-        body { font-family: Arial; background: #f4f4f4; padding: 30px; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        h1 { color: #e50914; }
-        label { display: block; margin: 15px 0 5px; font-weight: bold; }
-        input, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; }
-        button { background: #28a745; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; margin-top: 20px; }
-        button:hover { background: #218838; }
+        :root {
+            --neon: #6a6aff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #2c2c4c 100%);
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 860px;
+            margin: 40px auto;
+            background: linear-gradient(145deg, #3a3a5c, #25253d);
+            border: 3px solid var(--neon);
+            border-radius: 18px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.8);
+            padding: 40px;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 30px;
+            text-align: center;
+            text-shadow: 0 0 15px var(--neon);
+        }
+
+        label {
+            display: block;
+            margin: 20px 0 8px;
+            font-weight: 700;
+            color: #c0c0ff;
+        }
+
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 16px;
+            background: #1f1f38;
+            border: 2px solid #5e5eff;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        input:focus,
+        textarea:focus {
+            border-color: #9d9dff;
+            box-shadow: 0 0 0 4px rgba(106,106,255,0.4);
+            outline: none;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .preview {
+            margin: 25px 0;
+            padding: 15px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 12px;
+            border: 2px dashed #6a6aff;
+            text-align: center;
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        button {
+            background: linear-gradient(#6a6aff, #9d9dff);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 30px;
+            box-shadow: 0 8px 25px rgba(106,106,255,0.5);
+            transition: all 0.3s;
+        }
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px #6a6aff;
+        }
+
+        .back {
+            display: inline-block;
+            margin-top: 25px;
+            color: #c0c0ff;
+            text-decoration: none;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Editar Vídeo: {{ video.title }}</h1>
+
+<div class="container">
+    <h1>✏️ Editar Vídeo</h1>
+    <p style="text-align:center; margin-bottom:30px; color:#aaa;">
+        {{ video.title }}
+    </p>
+
+    <form method="POST" enctype="multipart/form-data">
         
-        <form method="POST">
-            <label for="title">Título:</label>
-            <input type="text" id="title" name="title" value="{{ video.title }}" required>
+        <!-- TÍTULO -->
+        <label>Título do vídeo</label>
+        <input type="text" name="title" value="{{ video.title }}" required>
 
-            <label for="description">Descrição:</label>
-            <textarea id="description" name="description" rows="6" required>{{ video.description }}</textarea>
+        <!-- DESCRIÇÃO -->
+        <label>Descrição completa</label>
+        <textarea name="description" rows="5" required>{{ video.description }}</textarea>
 
-            <label for="chapters">Capítulos (formato: tempo - título, um por linha):</label>
-            <textarea id="chapters" name="chapters" rows="8" placeholder="0:00 Introdução\n2:30 Parte principal\n..."></textarea>
+        <!-- CAPÍTULOS -->
+        <label>Capítulos (um por linha: tempo - título)</label>
+        <textarea name="chapters" rows="6" placeholder="0:00 - Introdução&#10;2:30 - Parte 1&#10;5:45 - Dicas finais">{{ video.chapters or '' }}</textarea>
 
-            <button type="submit">Salvar Alterações</button>
-        </form>
+        <!-- LEGENDAS -->
+        <label>Legendas (.srt) — Substituir arquivo atual</label>
+        <input type="file" name="subtitle" accept=".srt">
+        {% if video.subtitle_file %}
+        <small style="display:block; margin-top:6px; color:#9d9dff;">
+            ✅ Legenda atual: {{ video.subtitle_file }}
+        </small>
+        {% endif %}
 
-        <a href="{{ url_for('watch', video_id=video.id) }}" style="display: block; margin-top: 20px; text-align: center;">Voltar ao Player</a>
-    </div>
+        <!-- BOTÃO SALVAR -->
+        <button type="submit">💾 SALVAR ALTERAÇÕES</button>
+    </form>
+
+    <a href="/" class="back">Voltar</a>
+</div>
+
 </body>
 </html>

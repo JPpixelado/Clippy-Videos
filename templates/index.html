@@ -5,37 +5,38 @@
     <title>Clippy Vídeos</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="{{ static_url }}favicon.ico" type="image/x-icon">
-    
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-SEU_ID_DE_EDITOR" crossorigin="anonymous"></script>
 
     <style>
         * { box-sizing: border-box; }
-        
+
         body {
             margin: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: {{ user_settings.cor_fundo|default('#f5f5f5') }} !important;
+            background: linear-gradient(135deg, #2c2c4c 0%, #1a1a2e 100%);
+            color: #fff;
             display: flex;
         }
 
-        /* Sidebar */
+        /* Sidebar com degradê estilo 2010s */
         .sidebar {
             width: 220px;
-            background-color: #1c1c1c;
+            background: linear-gradient(to bottom, #3a3a5c, #1f1f38);
             color: white;
             height: 100vh;
             padding: 20px;
             position: fixed;
             overflow-y: auto;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.6);
+            border-right: 3px solid #6a6aff;
         }
         
         .sidebar h2 {
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             display: flex;
             align-items: center;
             gap: 10px;
-            color: #fff;
-            margin-bottom: 30px;
+            margin-bottom: 35px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
         }
 
         .menu-item {
@@ -44,12 +45,19 @@
             gap: 12px;
             color: white;
             text-decoration: none;
-            margin-bottom: 15px;
-            font-weight: 500;
-            transition: color 0.2s;
+            margin-bottom: 16px;
+            font-weight: 600;
+            padding: 10px 14px;
+            border-radius: 8px;
+            background: linear-gradient(to right, rgba(255,255,255,0.1), transparent);
+            transition: all 0.3s;
         }
-        .menu-item:hover { color: #aaa; }
-        .menu-item img { width: 24px; height: 24px; object-fit: contain; }
+        .menu-item:hover {
+            background: linear-gradient(to right, #6a6aff, #9d9dff);
+            color: #fff;
+            transform: translateX(8px);
+        }
+        .menu-item img { width: 26px; height: 26px; filter: brightness(1.1); }
 
         /* Conteúdo Principal */
         .main {
@@ -57,18 +65,7 @@
             padding: 30px;
             flex: 1;
             width: calc(100% - 220px);
-        }
-
-        /* BANNER DE ANÚNCIO */
-        .ad-banner-container {
-            width: 100%;
-            max-width: 1100px;
-            margin: 0 auto 30px auto;
-            padding: 15px;
-            background: #fff;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            text-align: center;
+            background: linear-gradient(135deg, #1f1f38 0%, #2c2c4c 100%);
         }
 
         /* Grid de Vídeos */
@@ -79,128 +76,171 @@
         }
 
         .video-card {
-            background: #fff;
+            background: linear-gradient(145deg, #3a3a5c, #25253d);
             border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            transition: transform 0.2s ease;
-            height: 100%;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5),
+                        inset 0 2px 6px rgba(255,255,255,0.15);
+            transition: all 0.3s ease;
+            border: 1px solid #5e5eff;
         }
-        .video-card:hover { transform: translateY(-5px); }
+        .video-card:hover {
+            transform: translateY(-8px) scale(1.03);
+            box-shadow: 0 15px 30px rgba(106,106,255,0.4);
+        }
         
-        .video-card img { width: 100%; aspect-ratio: 16/9; object-fit: cover; }
-        .video-info { padding: 12px; }
-        .video-info strong { display: block; margin-bottom: 5px; color: #202124; font-size: 1rem; }
-        .video-info small { color: #606060; }
-        .video-info p { margin: 5px 0 0; font-size: 0.9rem; color: #1a73e8; }
-
-        /* Skeletons */
-        .skeleton { background: #e0e0e0; position: relative; overflow: hidden; border-radius: 4px; }
-        .skeleton.thumb { height: 140px; border-radius: 12px; }
-        .skeleton.title { height: 18px; width: 80%; margin: 10px 0; }
-        .skeleton::after {
-            content: ""; position: absolute; top: 0; left: -150px; bottom: 0; width: 150px;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-            animation: shimmer 1.5s infinite;
+        .video-card img { 
+            width: 100%; 
+            aspect-ratio: 16/9; 
+            object-fit: cover;
+            filter: brightness(1.08) contrast(1.05);
         }
-        @keyframes shimmer { 100% { transform: translateX(350%); } }
-		.logo {
-		width: 180px;
-		height: auto;
-		}
+
+        .video-info { 
+            padding: 14px; 
+            background: linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.6));
+        }
+        .video-info strong { 
+            display: block; 
+            margin-bottom: 6px; 
+            color: #fff;
+            font-size: 1.05rem;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.7);
+        }
+        .video-info small { 
+            color: #c0c0ff; 
+            font-size: 0.9rem;
+        }
+        .video-info p {
+            margin: 4px 0 0;
+            color: #a0a0ff;
+            font-size: 0.92rem;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2rem;
+            color: #aaa;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .logo { 
+            width: 180px; 
+            height: auto;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.6));
+        }
     </style>
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('https://192.168.0.150:7071/sw.js')
+                .then(reg => console.log('Service Worker registrado com sucesso!', reg.scope))
+                .catch(err => console.log('Falha ao registrar Service Worker:', err));
+        });
+    }
+    </script>
 </head>
 <body>
 
     <nav class="sidebar">
-        <img class="logo" src="{{ static_url }}logo.png" alt="logo do Clippy Videos">
-        <a href="/" class="menu-item"><img src="{{ static_url }}home.png"> início</a>
-        <a href="/buscar" class="menu-item"><img src="{{ static_url }}search.png"> pesquisar</a>
-        <a href="/shorts" class="menu-item"><img src="{{ static_url }}tia.png"> shorts</a>
+        <img class="logo" src="{{ static_url }}logo.png" alt="Clippy Videos">
+        <a href="/" class="menu-item"><img src="{{ static_url }}home.png"> Início</a>
+        <a href="/buscar" class="menu-item"><img src="{{ static_url }}search.png"> Pesquisar</a>
+        <a href="/shorts" class="menu-item"><img src="{{ static_url }}tia.png"> Shorts</a>
         <a href="/create" class="menu-item"><img src="{{ static_url }}studio.png"> Studio</a>
-		{% if studio_link %}
-
-<a href="{{ studio_link }}" class="studio-btn menu-item">
-
-  <img src="{{ static_url }}studio.png" alt="Studio">
-
-  Acessar Meu Studio
-
-</a>
-
-{% endif %}
         
-        <a href="/aovivo" class="menu-item"><img src="{{ static_url }}w.png"> lives</a>
-		<a href="/conta" class="menu-item"><img src="{{ static_url }}user.png"> conta</a>
-		<a href="/login" class="menu-item"><img src="{{ static_url }}user.png"> login</a>
-		<a href="/configs" class="menu-item"><img src="{{ static_url }}icons/settings.png">configurações</a>
-		<a href="/sobre" class="menu-item"><img src="{{ static_url }}cd.png">sobre</a>
+        {% if studio_link %}
+        <a href="{{ studio_link }}" class="menu-item">
+            <img src="{{ static_url }}studio.png"> Acessar Meu Studio
+        </a>
+        {% endif %}
+        
+        <a href="/aovivo" class="menu-item"><img src="{{ static_url }}w.png"> Ao Vivo</a>
+        <a href="/conta" class="menu-item"><img src="{{ static_url }}user.png"> Conta</a>
+        <a href="/configs" class="menu-item"><img src="{{ static_url }}icons/settings.png"> Configurações</a>
+        <a href="/sobre" class="menu-item"><img src="{{ static_url }}cd.png"> Sobre</a>
     </nav>
 
     <div class="main">
-	<div class="ad-banner-container" id="ad-container">
-    <small style="color: #999; display: block; text-align: center; margin-bottom: 5px;">Publicidade</small>
-    <a href="#" id="ad-link">
-        <img id="ad-image" src="" alt="Banner" style="width: 100%; height: auto; max-height: 200px; border-radius: 8px; object-fit: cover;">
-    </a>
-</div>
-        <div id="skeletons" class="grid">
-            {% for i in range(6) %}
-            <div class="video-card">
-                <div class="skeleton thumb"></div>
-                <div class="video-info">
-                    <div class="skeleton title"></div>
-                    <div class="skeleton title" style="width: 50%;"></div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-
-        <div class="grid" id="real-content" style="display:none;">
+        <div class="grid" id="video-grid">
             {% for video in videos %}
             <a href="{{ url_for('player', item_id=video.id) }}" style="text-decoration:none;">
                 <article class="video-card">
                     {% if video.thumb %}
                         <img src="{{ static_url }}uploads/{{ video.thumb }}" alt="{{ video.title }}">
                     {% else %}
-                        <div style="width:100%; aspect-ratio:16/9; background:#333;"></div>
+                        <div style="width:100%; aspect-ratio:16/9; background: linear-gradient(45deg, #444, #222);"></div>
                     {% endif %}
                     <div class="video-info">
                         <strong>{{ video.title }}</strong>
                         <small>{{ video.views }} visualizações</small>
+                        <p>postado {{ video.idade }}</p>
                         <p>@{{ video.channel }}</p>
                     </div>
                 </article>
             </a>
             {% endfor %}
         </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            Carregando mais vídeos...
+        </div>
     </div>
 
     <script>
-        window.addEventListener("load", () => {
-            document.getElementById("skeletons").style.display = "none";
-            document.getElementById("real-content").style.display = "grid";
+        // (Script mantido igual)
+        let page = 1;
+        let loading = false;
+        const videosPerPage = 12;
+
+        async function loadMoreVideos() {
+            if (loading) return;
+            loading = true;
+            document.getElementById('loading').style.display = 'block';
+
+            try {
+                const response = await fetch(`/api/videos?page=${page}&per_page=${videosPerPage}`);
+                const data = await response.json();
+
+                if (data.videos && data.videos.length > 0) {
+                    const grid = document.getElementById('video-grid');
+                    
+                    data.videos.forEach(video => {
+                        const cardHTML = `
+                            <a href="/player/${video.id}" style="text-decoration:none;">
+                                <article class="video-card">
+                                    ${video.thumb 
+                                        ? `<img src="${video.static_url}uploads/${video.thumb}" alt="${video.title}">` 
+                                        : `<div style="width:100%; aspect-ratio:16/9; background: linear-gradient(45deg, #444, #222);"></div>`}
+                                    <div class="video-info">
+                                        <strong>${video.title}</strong>
+                                        <small>${video.views} visualizações</small>
+                                        <p>@${video.channel}</p>
+                                    </div>
+                                </article>
+                            </a>`;
+                        grid.insertAdjacentHTML('beforeend', cardHTML);
+                    });
+
+                    page++;
+                } else {
+                    document.getElementById('loading').innerHTML = 'Fim dos vídeos';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar vídeos:', error);
+            } finally {
+                loading = false;
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        window.addEventListener('scroll', () => {
+            if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 300) {
+                loadMoreVideos();
+            }
         });
-    // Lista de URLs de imagens para o banner
-    // Você pode trocar por: "{{ static_url }}banner1.jpg", etc.
-    const banners = [
-        "https://picsum.photos/1200/200?random=1",
-        "https://picsum.photos/1200/200?random=2",
-        "https://picsum.photos/1200/200?random=3",
-        "http://192.168.0.150:7071/ads/clippy+pro.png",
-        "http://192.168.0.150:7071/ads/privacy.png"
-    ];
-
-    function mudarBanner() {
-        const imgElement = document.getElementById('ad-image');
-        // Escolhe um índice aleatório da lista
-        const indiceSorteado = Math.floor(Math.random() * banners.length);
-        // Aplica a imagem ao src
-        imgElement.src = banners[indiceSorteado];
-    }
-
-    // Executa a função assim que a página carrega
-    window.addEventListener('DOMContentLoaded', mudarBanner);
-</script>
+    </script>
 </body>
 </html>
