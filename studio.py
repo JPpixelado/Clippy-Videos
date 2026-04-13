@@ -16,6 +16,11 @@ APP_BASE_URL = "https://192.168.0.150:7070/"       # URL do app principal
 SQLITE_DB = r'D:\sqlite\app.db' if os.name == 'nt' else 'app.db'  # Banco compartilhado
 UPLOAD_FOLDER = r'D:\cstatic\static\uploads' if os.name == 'nt' else 'static/uploads'
 FFMPEG_PATH = r'L:\ffmpeg\bin\ffmpeg.exe' if os.name == 'nt' else 'ffmpeg'
+SUBTITLES_FOLDER = os.path.join(UPLOAD_FOLDER, 'subtitles')
+BANNERS_FOLDER = os.path.join(UPLOAD_FOLDER, 'banners')
+
+os.makedirs(SUBTITLES_FOLDER, exist_ok=True)
+os.makedirs(BANNERS_FOLDER, exist_ok=True)
 
 # Cria o app Flask independente
 studio_app = Flask(__name__)
@@ -51,6 +56,10 @@ def inject_user_settings():
             with open(path, 'r') as f:
                 return dict(user_settings=json.load(f))
     return dict(user_settings={'cor_fundo': '#f0f2f5', 'idade': '18'})
+
+@studio_app.context_processor
+def inject_static_url():
+    return dict(static_url=STATIC_SERVER_URL)
 
 # Funções do banco (independentes)
 def get_db():
@@ -92,14 +101,11 @@ def get_video(video_id):
 def save_video_entry(video_entry):
     conn = get_db()
     c = conn.cursor()
-    subtitles_json = json.dumps(video_entry.get('subtitles', []), ensure_ascii=False)
     c.execute("""
-        INSERT OR REPLACE INTO videos (
-            id, filename, filename_144p, filename_360p, filename_480p,
-            title, description, views, channel, thumb,
-            subtitles, status
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT OR REPLACE INTO videos 
+        (id, filename, filename_144p, filename_360p, filename_480p, title, 
+         description, views, channel, thumb, subtitles, chapters, subtitle_file, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         video_entry['id'],
         video_entry.get('filename'),
@@ -111,8 +117,10 @@ def save_video_entry(video_entry):
         int(video_entry.get('views', 0)),
         video_entry.get('channel'),
         video_entry.get('thumb'),
-        subtitles_json,
-        video_entry.get('status', 'pendente')
+        json.dumps(video_entry.get('subtitles', [])),
+        video_entry.get('chapters', ''),
+        video_entry.get('subtitle_file', ''),
+        video_entry.get('status', 'publicado')
     ))
     conn.commit()
     conn.close()
@@ -169,42 +177,34 @@ def create_channel():
 def studio(username):
     ch = get_channel_info(username)
     if not ch:
-        return 'Canal não encontrado', 404
-    display_name = ch.get('display_name', username)
-    bio = ch.get('bio', '')
+        return "Canal não encontrado", 404
 
-    videos = [v for v in load_videos() if v.get('channel') == username]
-    total_views = sum(int(v.get('views', 0)) for v in videos)
-    total_videos = len(videos)
-
-    # Contagem de subscribers
     conn = get_db()
     c = conn.cursor()
-    c.execute("SELECT COUNT(*) AS cnt FROM subscribers WHERE channel = ?", (username,))
+    c.execute("SELECT * FROM videos WHERE channel = ?", (username,))
+    videos = [dict(row) for row in c.fetchall()]
+    conn.close()
+
+    total_views = sum(v.get('views', 0) for v in videos)
+    total_videos = len(videos)
+
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT COUNT(*) as cnt FROM subscribers WHERE channel = ?", (username,))
     subscribers = c.fetchone()['cnt']
     conn.close()
 
-    # Collabs
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT video_id, name, role, status FROM collabs WHERE channel = ?", (username,))
-    collabs_rows = c.fetchall()
-    conn.close()
-    collabs_data = {}
-    for r in collabs_rows:
-        collabs_data.setdefault(r['video_id'], []).append(dict(r))
-
     return render_template('studio.html',
+                           display_name=ch.get('display_name', username),
+                           bio=ch.get('bio', ''),
                            username=username,
-                           display_name=display_name,
-                           bio=bio,
-                           channel_videos=videos,
                            total_views=total_views,
                            total_videos=total_videos,
                            subscribers=subscribers,
-                           collabs_data=collabs_data)
+                           channel_videos=videos,
+                           banner_path=ch.get('banner_path'))
 
-@studio_app.route('/upload', methods=['GET', 'POST'])
+@studio_app.route('/studio/<username>/upload_mobile', methods=['GET', 'POST'])
 def studio_mobile_upload(username):
     if request.method == 'POST':
         senha_digitada = request.form.get('password')
@@ -298,91 +298,68 @@ def studio_mobile_upload(username):
 
 @studio_app.route('/studio/<username>/upload_video', methods=['POST'])
 def upload_video(username):
-    senha_digitada = request.form.get('password')
+    senha = request.form.get('password')
     ch = get_channel_info(username)
-    if not ch:
-        return 'Canal não encontrado', 404
-    if not verify_channel_password(senha_digitada, ch.get('password', '')):
-        return 'Senha do canal incorreta', 403
+    if not ch or senha != ch.get('password'):
+        return "Senha incorreta", 403
 
     title = request.form.get('title')
     description = request.form.get('description')
-    video = request.files.get('video')
-    thumb = request.files.get('thumb')
+    chapters = request.form.get('chapters', '')
+    video_file = request.files.get('video')
+    thumb_file = request.files.get('thumb')
+    subtitle_file = request.files.get('subtitle')
 
-    if not all([title, description, video]):
-        return 'Dados incompletos', 400
+    if not video_file or not title:
+        return "Título e vídeo são obrigatórios", 400
 
-    # Use o objeto app diretamente (studio_app)
-    upload_folder = studio_app.config['UPLOAD_FOLDER']
-    ffmpeg_path = studio_app.config.get('FFMPEG_PATH', 'ffmpeg')
+    # Salvar vídeo
+    filename = secure_filename(video_file.filename)
+    unique_name = f"{uuid.uuid4().hex[:8]}_{filename}"
+    video_path = os.path.join(UPLOAD_FOLDER, unique_name)
+    video_file.save(video_path)
 
-    filename = secure_filename(video.filename)
-    video_path = os.path.join(upload_folder, filename)
-    video.save(video_path)
+    # Thumbnail
+    thumb_filename = f"thumb_{os.path.splitext(unique_name)[0]}.jpg"
+    if thumb_file and thumb_file.filename:
+        thumb_file.save(os.path.join(UPLOAD_FOLDER, thumb_filename))
+    else:
+        # Gera thumb automática
+        try:
+            subprocess.run([r'L:\ffmpeg\bin\ffmpeg.exe' if os.name=='nt' else 'ffmpeg',
+                            '-i', video_path, '-ss', '00:00:03', '-vframes', '1',
+                            os.path.join(UPLOAD_FOLDER, thumb_filename)], check=True)
+        except:
+            thumb_filename = 'default_thumb.jpg'
 
-    # Thumbnail automática
-    thumb_filename = f"thumb_{os.path.splitext(filename)[0]}.jpg"
-    thumb_path = os.path.join(upload_folder, thumb_filename)
-    try:
-        subprocess.run([ffmpeg_path, '-i', video_path, '-ss', '00:00:01', '-vframes', '1', thumb_path], check=True)
-    except Exception as e:
-        print("Erro ao gerar thumb:", e)
-        thumb_filename = ''
+    # Legenda .srt
+    subtitle_path = ''
+    if subtitle_file and subtitle_file.filename.endswith('.srt'):
+        subtitle_path = f"{uuid.uuid4().hex[:8]}_{secure_filename(subtitle_file.filename)}"
+        subtitle_file.save(os.path.join(SUBTITLES_FOLDER, subtitle_path))
 
-    # Thumb manual
-    if thumb and thumb.filename != '':
-        thumb_filename = 'thumb_' + secure_filename(thumb.filename)
-        thumb.save(os.path.join(upload_folder, thumb_filename))
+    video_id = uuid.uuid4().hex[:10]
 
-    # Transcodes (144p, 360p, 480p)
-    filename_144p = f'144p_{filename}'
-    video_path_144p = os.path.join(upload_folder, filename_144p)
-    try:
-        subprocess.run([ffmpeg_path, '-i', video_path, '-vf', 'scale=256:-2', '-c:v', 'libx264', '-preset', 'fast',
-                        '-crf', '28', '-c:a', 'aac', '-b:a', '64k', video_path_144p], check=True)
-    except Exception as e:
-        print("Erro 144p:", e)
-        filename_144p = ''
-
-    filename_360p = f'360p_{filename}'
-    video_path_360p = os.path.join(upload_folder, filename_360p)
-    try:
-        subprocess.run([ffmpeg_path, '-i', video_path, '-vf', 'scale=640:-2', '-c:v', 'libx264', '-preset', 'fast',
-                        '-crf', '25', '-c:a', 'aac', '-b:a', '96k', video_path_360p], check=True)
-    except Exception as e:
-        print("Erro 360p:", e)
-        filename_360p = ''
-
-    filename_480p = f'480p_{filename}'
-    video_path_480p = os.path.join(upload_folder, filename_480p)
-    try:
-        subprocess.run([ffmpeg_path, '-i', video_path, '-vf', 'scale=854:-2', '-c:v', 'libx264', '-preset', 'fast',
-                        '-crf', '23', '-c:a', 'aac', '-b:a', '128k', video_path_480p], check=True)
-    except Exception as e:
-        print("Erro 480p:", e)
-        filename_480p = ''
-
-    vid = uuid.uuid4().hex[:10]
     video_entry = {
-        'id': vid,
-        'filename': filename,
-        'filename_144p': filename_144p,
-        'filename_360p': filename_360p,
-        'filename_480p': filename_480p,
+        'id': video_id,
+        'filename': unique_name,
+        'filename_144p': '', 'filename_360p': '', 'filename_480p': '',
         'title': title,
         'description': description,
         'views': 0,
         'channel': username,
         'thumb': thumb_filename,
         'subtitles': [],
-        'status': 'pendente'
+        'chapters': chapters,
+        'subtitle_file': subtitle_path,
+        'status': 'publicado'
     }
+
     save_video_entry(video_entry)
 
-    return redirect(url_for('studio', username=username))
+    return redirect(f'/studio/{username}')
 
-@studio_app.route('/trocar_foto', methods=['POST'])
+@studio_app.route('/studio/<username>/trocar_foto', methods=['POST'])
 def trocar_foto(username):
     senha_digitada = request.form.get('password')
     ch = get_channel_info(username)
@@ -465,18 +442,17 @@ def delete_video(video_id):
     conn.commit()
     conn.close()
 
-    upload_folder = current_app.config['UPLOAD_FOLDER']
     for fname in [video.get('filename'),
                   video.get('filename_144p'),
                   video.get('filename_360p'),
                   video.get('filename_480p')]:
         if fname:
-            path = os.path.join(upload_folder, fname)
+            path = os.path.join(UPLOAD_FOLDER, fname)
             if os.path.exists(path):
                 os.remove(path)
 
-    # redireciona de volta pro estúdio
-    return redirect(url_for('/'))
+    channel = video.get('channel', '')
+    return redirect(url_for('studio', username=channel))
 
 @studio_app.route('/api/collab/gerenciar', methods=['POST'])
 def api_gerenciar_collab():
@@ -524,6 +500,31 @@ def gerenciar_collabs(username):
     ativos = [c for c in all_collabs if c['status'] == 'aceito']
 
     return render_template("collabs.html", username=username, pedidos=pedidos, ativos=ativos)
+
+@studio_app.route('/studio/<username>/upload_banner', methods=['POST'])
+def upload_banner(username):
+    ch = get_channel_info(username)
+    if not ch:
+        return jsonify({'error': 'Canal não encontrado'}), 404
+
+    banner = request.files.get('banner')
+    if not banner:
+        return jsonify({'error': 'Nenhum arquivo enviado'}), 400
+
+    ext = banner.filename.split('.')[-1].lower()
+    banner_name = f"banner_{username}.{ext}"
+    banner_path = os.path.join(BANNERS_FOLDER, banner_name)
+    banner.save(banner_path)
+
+    # Salva no banco
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("UPDATE channels SET banner_path = ? WHERE username = ?", 
+              (banner_name, username))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'success': True, 'banner': banner_name})
 
 if __name__ == '__main__':
     studio_app.run(host="0.0.0.0", port=7072, debug=True, ssl_context=('192.168.0.150.pem', '192.168.0.150-key.pem'))  # Porta separada para independência

@@ -1,6 +1,6 @@
 # app.py
-STATIC_SERVER_URL = "httpS://192.168.0.150:7071/"
-STUDIO_BASE_URL = "httpS://192.168.0.150:7072/"  # URL do servidor independente
+STATIC_SERVER_URL = "https://192.168.0.150:7071/"
+STUDIO_BASE_URL = "https://192.168.0.150:7072/"  # URL do servidor independente
 import os
 import json
 import uuid
@@ -10,7 +10,7 @@ import sqlite3
 from flask_socketio import SocketIO
 from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory, send_file, jsonify, abort, flash
 from werkzeug.utils import secure_filename
-from datetime import datetime
+from datetime import datetime, UTC, timezone
 from admin import admin_bp
 from flask import request
 
@@ -29,11 +29,12 @@ if os.name == 'nt':
     BASE_STATIC = r'D:\cstatic\static'
     UPLOAD_FOLDER = os.path.join(BASE_STATIC, 'uploads')
     CHAT_FILES_FOLDER = os.path.join(BASE_STATIC, 'chat_uploads')
-    COMMENTS_FOLDER = 'coments'
 else:
     # No PythonAnywhere (mantém o padrão se não for mudar lá também)
     UPLOAD_FOLDER = 'static/uploads'
     CHAT_FILES_FOLDER = 'static/chat_uploads'
+
+COMMENTS_FOLDER = 'coments'  # Pasta de comentários (igual nos dois sistemas)
 
 # App
 app = Flask(__name__)
@@ -55,7 +56,10 @@ def inject_static_url():
 # Ensure folders
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(COMMENTS_FOLDER, exist_ok=True)
-os.makedirs(os.path.dirname(SQLITE_DB), exist_ok=True)
+# Só cria pasta do DB se houver subpasta (no Linux o dirname de "app.db" seria "")
+_db_dir = os.path.dirname(SQLITE_DB)
+if _db_dir:
+    os.makedirs(_db_dir, exist_ok=True)
 os.makedirs(CHAT_FILES_FOLDER, exist_ok=True)
 
 # ---------- DB helpers ----------
@@ -97,6 +101,7 @@ def init_db():
         id TEXT PRIMARY KEY,
         filename TEXT,
         filename_144p TEXT,
+        filename_360p TEXT,
         filename_480p TEXT,
         title TEXT,
         description TEXT,
@@ -104,8 +109,11 @@ def init_db():
         channel TEXT,
         thumb TEXT,
         subtitles TEXT,
+        chapters TEXT DEFAULT '',
+        subtitle_file TEXT DEFAULT '',
+        created_at TEXT,
         status TEXT DEFAULT 'pendente',
-        classificacao TEXT DEFAULT 'L'  -- Novo campo: 'L', '10', 'A10', '12', 'A12', '14', 'A14', '16', 'A16', '18', 'A18'.
+        classificacao TEXT DEFAULT 'L'
     )
     """)
     
@@ -314,9 +322,25 @@ def migrate_json_to_db():
 
     conn.close()
 
+def corrigir_videos_antigos():
+    conn = get_db()
+    c = conn.cursor()
+
+    agora = datetime.now(UTC).isoformat()
+
+    c.execute("""
+        UPDATE videos 
+        SET created_at = ?
+        WHERE created_at IS NULL OR created_at = ''
+    """, (agora,))
+
+    conn.commit()
+    conn.close()
+
 # Initialize DB and maybe migrate
 init_db()
 migrate_json_to_db()
+corrigir_videos_antigos()
 
 # ---------- Utility functions (DB-backed) ----------
 
@@ -329,6 +353,7 @@ def load_videos():
     for r in rows:
         v = dict(r)
         v['subtitles'] = json.loads(v['subtitles']) if v['subtitles'] else []
+        v['idade'] = calcular_idade(v.get('created_at')) if v.get('created_at') else ''
         videos.append(v)
     conn.close()
     return videos
@@ -342,11 +367,11 @@ def save_video_entry(video_entry):
 
     c.execute("""
         INSERT OR REPLACE INTO videos (
-            id, filename, filename_144p, filename_480p, 
-            title, description, views, channel, thumb, 
-            subtitles, status
+            id, filename, filename_144p, filename_480p,
+            title, description, views, channel, thumb,
+            subtitles, status, created_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         video_entry['id'],
         video_entry.get('filename'),
@@ -358,7 +383,8 @@ def save_video_entry(video_entry):
         video_entry.get('channel'),
         video_entry.get('thumb'),
         subtitles_json, # Agora a variável existe acima
-        video_entry.get('status', 'pendente')
+        video_entry.get('status', 'pendente'),
+        video_entry.get('created_at')
     ))
     conn.commit()
     conn.close()
@@ -455,6 +481,34 @@ def format_time(t):
     hrs = int(t) // 3600
     return f"{hrs:02}:{mins:02}:{sec:02}.{millis:03}"
 
+def calcular_idade(timestamp_iso):
+    try:
+        data_video = datetime.fromisoformat(timestamp_iso)
+        agora = datetime.now(timezone.utc) if data_video.tzinfo else datetime.now()
+
+        diff = agora - data_video
+        segundos = int(diff.total_seconds())
+
+        if segundos < 60:
+            return "agora mesmo"
+        elif segundos < 3600:
+            minutos = segundos // 60
+            return f"há {minutos} minuto(s)"
+        elif segundos < 86400:
+            horas = segundos // 3600
+            return f"há {horas} hora(s)"
+        elif segundos < 2592000:
+            dias = segundos // 86400
+            return f"há {dias} dia(s)"
+        elif segundos < 31536000:
+            meses = segundos // 2592000
+            return f"há {meses} mês(es)"
+        else:
+            anos = segundos // 31536000
+            return f"há {anos} ano(s)"
+    except:
+        return "data desconhecida"
+
 # ----> json <----
 
 # Função auxiliar para pegar o caminho do config.json
@@ -548,7 +602,8 @@ def index():
                 'channel': None,
                 'thumb': thumb_filename,
                 'subtitles': [],
-                'status': 'pendente'
+                'status': 'pendente',
+                'created_at': datetime.utcnow().isoformat()
             }
             save_video_entry(video_entry)
 
@@ -1697,40 +1752,6 @@ def conta():
                            channel=channel,
                            studio_link=studio_link)
 
-@app.route('/editar-video/<video_id>', methods=['GET', 'POST'])
-def editar_video(video_id):
-    if 'username' not in session:
-        flash("Faça login para editar vídeos.")
-        return redirect(url_for('login'))
-
-    video = get_video(video_id)
-    if not video:
-        return "Vídeo não encontrado", 404
-
-    # Verifica se o usuário é dono do canal do vídeo
-    if video.get('channel') != session['username']:
-        return "Você não tem permissão para editar este vídeo.", 403
-
-    if request.method == 'POST':
-        new_title = request.form.get('title')
-        new_description = request.form.get('description')
-        new_chapters = request.form.get('chapters')  # ex: "0:00 Introdução\n2:30 Parte 1\n..."
-
-        conn = get_db()
-        c = conn.cursor()
-        c.execute("""
-            UPDATE videos 
-            SET title = ?, description = ?, subtitles = ?
-            WHERE id = ?
-        """, (new_title, new_description, new_chapters, video_id))
-        conn.commit()
-        conn.close()
-
-        flash("Vídeo atualizado com sucesso!")
-        return redirect(url_for('player', item_id=video_id))
-
-    return render_template('editar_video.html', video=video)
-
 @app.route('/api/videos')
 def api_videos():
     page = int(request.args.get('page', 1))
@@ -1753,6 +1774,67 @@ def api_videos():
         'static_url': STATIC_SERVER_URL
     })
 
+# ==================== EDITAR VÍDEO ====================
+@app.route('/editar-video/<video_id>', methods=['GET', 'POST'])
+def editar_video(video_id):
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    video = get_video(video_id)
+    if not video or video.get('channel') != session['username']:
+        return "Você não tem permissão para editar este vídeo.", 403
+
+    if request.method == 'POST':
+        new_title = request.form.get('title')
+        new_description = request.form.get('description')
+        new_chapters = request.form.get('chapters', '')
+        subtitle_file = request.files.get('subtitle')
+
+        subtitle_path = video.get('subtitle_file', '')
+        if subtitle_file and subtitle_file.filename.endswith('.srt'):
+            subtitle_path = f"{uuid.uuid4().hex[:8]}_{secure_filename(subtitle_file.filename)}"
+            subtitle_file.save(os.path.join(SUBTITLES_FOLDER, subtitle_path))
+
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("""
+            UPDATE videos 
+            SET title = ?, description = ?, chapters = ?, subtitle_file = ?
+            WHERE id = ?
+        """, (new_title, new_description, new_chapters, subtitle_path, video_id))
+        conn.commit()
+        conn.close()
+
+        flash("Vídeo atualizado com sucesso!")
+        return redirect(url_for('player', item_id=video_id))
+
+    return render_template('editar_video.html', video=video)
+
+
+# Servir legendas .srt
+@app.route('/subtitles/<filename>')
+def serve_subtitle(filename):
+    return send_from_directory(SUBTITLES_FOLDER, filename)
+
+@app.route('/api/video/<video_id>/idade')
+def idade_video(video_id):
+    video = get_video(video_id)
+    
+    if not video:
+        return jsonify({'error': 'vídeo não encontrado'}), 404
+
+    created_at = video.get('created_at')
+    
+    if not created_at:
+        return jsonify({'idade': 'data não disponível'})
+
+    idade = calcular_idade(created_at)
+
+    return jsonify({
+        'video_id': video_id,
+        'idade': idade
+    })
+
 # Run
 if __name__ == '__main__':
     # run with eventlet recommended for socketio
@@ -1766,4 +1848,4 @@ if __name__ == '__main__':
     )
     except Exception:
         # fallback to flask dev server if socketio missing
-        app.run(host="0.0.0.0", port=7070, debug=True, threaded=True, ssl_context=('192.168.0.150.pem', '192.168.0.150-key.pem'))
+        app.run(host="0.0.0.0", port=7070, debug=True, threaded=True, ssl_context=('cert.pem', 'key.pem'))
