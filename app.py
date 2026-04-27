@@ -1865,9 +1865,9 @@ if __name__ == '__main__':
         app,
         host="0.0.0.0",
         port=7070,
-        debug=True,
+        debug=False,
         ssl_context=('192.168.0.150.pem', '192.168.0.150-key.pem')
     )
     except Exception:
         # fallback to flask dev server if socketio missing
-        app.run(host="0.0.0.0", port=7070, debug=True, threaded=True, ssl_context=('cert.pem', 'key.pem'))
+        app.run(host="0.0.0.0", port=7070, debug=False, threaded=True, ssl_context=('cert.pem', 'key.pem'))
