@@ -5,6 +5,8 @@ import os
 import json
 import uuid
 import random
+import secrets
+import requests
 import subprocess
 import sqlite3
 from flask_socketio import SocketIO
@@ -42,7 +44,7 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = int(5 * 1024 * 1024 * 1024)
 app.config['UPLOAD_FOLDER_CHAT'] = os.path.join('static', 'chat_uploads')
-app.secret_key = 'chave-secreta-do-jp'
+app.secret_key = 'WsTDo1zxc0oxx2o9Xo*188m'
 
 FFMPEG_PATH = r'D:\ffmpeg\bin\ffmpeg.exe'
 
@@ -336,6 +338,9 @@ def corrigir_videos_antigos():
 
     conn.commit()
     conn.close()
+
+def gerar_token():
+    return secrets.token_urlsafe(15)  # ~20-22 chars
 
 # Initialize DB and maybe migrate
 init_db()
@@ -1834,6 +1839,23 @@ def idade_video(video_id):
         'video_id': video_id,
         'idade': idade
     })
+
+@app.route('/auth/callback')
+def auth_callback():
+    token = request.args.get("token")
+
+    try:
+        r = requests.get(f"http://localhost:7075/api/validate?token={token}")
+        data = r.json()
+    except:
+        return "Erro ao validar", 500
+
+    if not data.get("valid"):
+        return "Token inválido", 403
+
+    session["username"] = data["username"]
+
+    return redirect("/")
 
 # Run
 if __name__ == '__main__':
