@@ -165,4 +165,4 @@ def validate():
 
 if __name__ == '__main__':
     print("🔥 Auth server rodando em http://localhost:7075")
-    app.run(port=7075, debug=True)
+    app.run(port=7075, debug=False)
