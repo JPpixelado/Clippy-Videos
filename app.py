@@ -1062,13 +1062,34 @@ def like_video():
     return 'Like registrado', 200
 
 @app.route("/shorts")
-def shorts():
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT * FROM shorts")
-    shorts_data = [dict(r) for r in c.fetchall()]
-    conn.close()
-    return render_template("shorts.html", shorts=shorts_data)
+@app.route("/shorts/<short_id>")
+def shorts(short_id=None):
+    videos = load_videos()
+    if not videos:
+        # If no normal videos are available yet, fallback to shorts table.
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM shorts")
+        videos = [dict(r) for r in c.fetchall()]
+        conn.close()
+
+    current_video = None
+    if short_id:
+        current_video = next((v for v in videos if str(v['id']) == str(short_id)), None)
+    if not current_video:
+        current_video = videos[0] if videos else None
+
+    current_index = next((i for i, v in enumerate(videos) if v['id'] == current_video['id']), 0) if current_video else 0
+    next_video = videos[(current_index + 1) % len(videos)] if videos else None
+    prev_video = videos[(current_index - 1) % len(videos)] if videos else None
+
+    return render_template(
+        "shorts.html",
+        shorts=videos,
+        current=current_video,
+        next_video=next_video,
+        prev_video=prev_video
+    )
 
 @app.route('/upload_short', methods=['POST'])
 def upload_short():
@@ -1857,6 +1878,10 @@ def auth_callback():
 
     return redirect("/")
 
+@app.route('/ajuda')
+def ajuda():
+    return render_template('ajuda.html')
+
 # Run
 if __name__ == '__main__':
     # run with eventlet recommended for socketio
@@ -1870,4 +1895,4 @@ if __name__ == '__main__':
     )
     except Exception:
         # fallback to flask dev server if socketio missing
-        app.run(host="0.0.0.0", port=7070, debug=False, threaded=True, ssl_context=('cert.pem', 'key.pem'))
+        app.run(host="0.0.0.0", port=7070, debug=False, threaded=True, ssl_context=('192.168.0.150.pem', '192.168.0.150-key.pem'))
